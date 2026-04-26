@@ -144,3 +144,34 @@ Record durable decisions so humans and agents do not re-litigate settled choices
 - Consequences: Simpler leave model and substitute assignment. Teachers cannot apply for half-day leave in MVP.
 - Follow-up actions: Design database schema to allow future session-level leave without migration pain.
 - Revisit trigger: Pilot school requires half-day or partial leave support.
+
+### DEC-008: Formal algorithm specification for substitute matching
+- Date: 2026-04-26
+- Status: Accepted
+- Decision area: Architecture / Product
+- Related docs: `docs/02-system-design.md` (Substitute Matching Algorithm Specification)
+- Context: The human identified that substitute teacher assignment is not a simple CRUD problem and requested research and formalization. Research confirmed it is a multi-criteria optimization problem (analogous to nurse scheduling / CSP).
+- Options considered:
+  - Option A: Simple rule-based filtering only (e.g., show teachers with competency, let admin pick).
+  - Option B: Weighted multi-criteria scoring with formal formulas, normalization, fairness metrics, and explainability contract.
+  - Option C: Machine learning model for matching.
+  - Option D: Integer Linear Programming / CP-SAT solver (Google OR-Tools) for global optimization.
+- Final decision: Use Option B for MVP, with a documented migration path to Option D if auto-assignment or global optimization becomes a requirement.
+- Why:
+  - Option B is explainable, testable, configurable per school, and fast (<500ms per leave at MVP scale).
+  - Option A would fail fairness requirements and produce untrustworthy recommendations.
+  - Option C is overkill, opaque, and lacks educational explainability requirements.
+  - Option D is powerful but introduces a heavy dependency and is unnecessary when the human remains in the loop (admin override).
+- Consequences:
+  - The system design doc now contains a complete algorithm specification with exact scoring formulas, normalization strategy, configuration model, fairness metrics, and API explainability contract.
+  - The scoring engine must be implemented as a standalone, heavily unit-tested module.
+  - The data model supports all required inputs (competency, familiarity, workload history, rule configs).
+  - A future spike can migrate to CP-SAT without changing the data model or scoring semantics.
+- Follow-up actions:
+  - Create board tasks for scoring engine implementation and unit tests.
+  - Create test fixtures with known expected rankings to validate the algorithm.
+  - Document the CP-SAT migration path in the technical backlog.
+- Revisit trigger:
+  - School requires automatic assignment without human approval per session.
+  - Fairness metrics consistently fall below TFI ≥ 0.80 with weighted scoring.
+  - Scale grows beyond ~200 teachers or ~3000 sessions/week where O(n log n) ranking becomes a bottleneck.

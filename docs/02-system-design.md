@@ -111,6 +111,289 @@ Use stable IDs so implementation and validation tasks can map to contracts.
 | roster-report service | Aggregate workload, leave, substitute data | queries | report data | UI | Read-only aggregates |
 | roster-audit service | Write/query roster-specific audit | domain events | audit events | all roster services | Append-only |
 
+## Substitute Matching Algorithm Specification [AIH]
+
+### Purpose
+Formalize the multi-criteria scoring methodology for the substitute teacher recommendation engine. This section replaces the hand-wavy "algorithm is O(n) per candidate" placeholder with exact formulas, normalization strategy, fairness metrics, explainability contract, and testing strategy.
+
+### Problem Formalization
+Given:
+- A `leave_request` L submitted by teacher T_leave for date D
+- The set of `class_session` objects S = {s₁, s₂, ... sₖ} affected by L on D
+- The set of all teachers U = {u₁, u₂, ... uₙ} in the school for the active term
+- School-specific rule configuration R = {w₁, w₂, w₃, w₄, caps, penalties, enabled_flags}
+
+For each affected session s ∈ S, produce:
+- A ranked list of candidate substitutes C_s = [(u, score_u, breakdown_u), ...]
+- Ordered by `score_u` descending
+- Where every candidate u is **feasible** (passes hard constraints)
+- And `breakdown_u` is an explainable decomposition of `score_u`
+
+### Algorithm Architecture: Three-Phase Pipeline
+
+```
+Phase 1: Feasibility Filter      → Remove ineligible candidates
+Phase 2: Multi-Criteria Scoring   → Compute normalized sub-scores per candidate
+Phase 3: Ranking + Explainability → Composite score, sort, emit breakdown
+```
+
+**Phase 1 — Feasibility Filter (Hard Constraints)**
+A candidate u is infeasible for session s on date D if ANY of the following hold:
+
+| Constraint | Source | Enforcement |
+|---|---|---|
+| Double-booked | u already has a `class_session` at the same `timetable_period` as s on D | Session query |
+| On leave | u has an approved `leave_request` covering D | Leave query |
+| Weekly cap exceeded | u's substitute_assignment count for the current week ≥ `weekly_substitute_cap` (configurable, default 5) | Aggregate query on `substitute_assignments` |
+| Excluded | u is in school-configured exclusion list for s.subject_id or s.grade_level_id | `substitute_rule_configs` with `criteria_key = "exclusion"` |
+| Already assigned to this leave | u is already assigned as substitute to another session in the same leave request L | In-memory dedup per L |
+
+Infeasible candidates are filtered **before** scoring. They do not appear in the ranked list.
+
+**Phase 2 — Multi-Criteria Scoring**
+For each feasible candidate u, compute four normalized sub-scores in the range [0, 1]:
+
+#### Criterion A: Workload Balance (`score_A`)
+Measures how far u's current substitute burden is from the ideal fair share.
+
+```
+let sub_count(u)  = count of substitute_assignments for u in current term
+let avg_sub       = mean sub_count across all feasible candidates for this session
+let max_dev       = max |sub_count(v) - avg_sub| across all feasible candidates v
+
+if max_dev == 0:
+    score_A(u) = 1.0
+else:
+    deviation    = |sub_count(u) - avg_sub|
+    score_A(u)   = 1.0 - (deviation / max_dev)
+```
+
+Properties:
+- Teachers with exactly average workload score 1.0
+- The teacher with the highest deviation scores 0.0
+- Negative deviation (below average) is rewarded the same as exact average → `score_A = 1.0`
+
+#### Criterion B: Subject Competency (`score_B`)
+Maps competency tier to a score band. Schools configure tiers; defaults are:
+
+| Tier | Default score | Description |
+|---|---|---|
+| `primary`    | 1.00 | u's primary teaching subject matches s.subject_id |
+| `secondary`  | 0.75 | u is capable at secondary level |
+| `capable`    | 0.40 | u can teach but is not specialized |
+| `none`       | 0.00 | no competency record for this subject |
+
+The `teacher_competencies` table stores `(teacher_id, subject_id, level)`.
+If multiple competency records exist for u and s.subject_id, the **highest** score applies.
+
+Schools may override the default band scores via `substitute_rule_configs` with `criteria_key = "competency_band"` and `custom_params = {primary: 1.0, secondary: 0.7, capable: 0.3, none: 0.0}`.
+
+#### Criterion C: Class Familiarity (`score_C`)
+Measures whether u has taught this exact class (subject + grade + section) before, and how recently.
+
+```
+let familiarity = teacher_class_familiarities record for (u, s.class_session_id)
+if no record exists:
+    score_C(u) = 0.0
+else:
+    let terms_ago = current_term_index - familiarity.last_taught_term_index
+    // Exponential decay: recent familiarity matters more
+    score_C(u) = familiarity.familiarity_score * exp(-λ * terms_ago)
+```
+
+Where:
+- `familiarity_score` ∈ [0, 1] is set by admin or derived from historical data (default 0.8 for "taught before")
+- `λ` (decay constant) = ln(2) / 3 ≈ 0.231, meaning familiarity halves every 3 terms
+- `terms_ago` = 0 → multiplier = 1.0; `terms_ago` = 3 → multiplier ≈ 0.5; `terms_ago` = 6 → multiplier ≈ 0.25
+
+#### Criterion D: Recency Penalty (`score_D`)
+Penalizes candidates who substituted very recently, to prevent the same teacher from being repeatedly chosen.
+
+```
+let days_since_last_sub = days since u's most recent substitute_assignment (any session)
+if days_since_last_sub is NULL:
+    score_D(u) = 1.0
+else if days_since_last_sub >= 14:
+    score_D(u) = 1.0
+else:
+    // Linear recovery from penalty over 14 days
+    score_D(u) = days_since_last_sub / 14.0
+```
+
+Schools may configure:
+- `recency_penalty_window_days` (default 14)
+- `recency_penalty_shape` (`linear` or `exponential`; default `linear`)
+
+For exponential shape:
+```
+score_D(u) = 1.0 - exp(-days_since_last_sub / τ)
+where τ = recency_penalty_window_days / 3
+```
+
+### Phase 3 — Composite Score and Ranking
+
+**Weighted Composite Formula**
+
+```
+composite_score(u) = w_A * score_A(u) + w_B * score_B(u) + w_C * score_C(u) + w_D * score_D(u)
+```
+
+Where `w_A + w_B + w_C + w_D = 1.0` and each `w_i ≥ 0`.
+
+**Default weights** (configurable per school):
+| Criterion | Default weight | Rationale |
+|---|---|---|
+| Workload Balance (A) | 0.30 | Fairness is important but not absolute |
+| Subject Competency (B) | 0.35 | Instructional quality is highest priority |
+| Class Familiarity (C) | 0.20 | Student continuity matters |
+| Recency Penalty (D) | 0.15 | Prevents repetitive burden |
+
+**Tie-Breaking**
+If `composite_score` ties within ε = 0.001:
+1. Prefer lower `sub_count(u)` (fewer substitutions this term)
+2. Prefer higher `score_B(u)` (better subject match)
+3. Prefer candidate with alphabetically earlier name (deterministic)
+
+**No Feasible Candidates**
+If Phase 1 yields zero feasible candidates for session s:
+- Return empty ranked list with a structured reason code: `NO_AVAILABLE_SUBSTITUTE`
+- UI shows: "No available teachers — please add external substitute or adjust schedule."
+- Audit event is written noting the uncovered session.
+
+### Fairness Metrics
+
+The algorithm is not merely a ranking function; it must produce **fair outcomes** over time. Define:
+
+**Term Fairness Index (TFI)** — measured weekly by report service:
+```
+TFI = 1 - (σ / μ)
+where:
+  μ = mean substitute count per teacher this term
+  σ = standard deviation of substitute counts
+```
+
+- TFI = 1.0 → perfect equality (all teachers have identical counts)
+- TFI = 0.0 → maximum inequality (one teacher has all substitutions)
+- Target for MVP: TFI ≥ 0.80 after 4+ weeks of term data
+
+**Coverage Rate** — percentage of leave-affected sessions with an assigned substitute:
+```
+coverage_rate = assigned_sessions / total_affected_sessions
+```
+- Target: ≥ 95% for full-day leave (some sessions may legitimately have no feasible sub)
+
+### Explainability Contract (API Response)
+
+`GET /roster/substitutes/recommend` must return, for each candidate:
+
+```typescript
+type SubstituteRecommendation = {
+  teacher_id: string;
+  teacher_name: string;
+  composite_score: number;        // 0.0 - 1.0
+  rank: number;
+  is_feasible: boolean;           // always true in ranked list
+  breakdown: {
+    workload_balance:  { score: number; weight: number; contribution: number; detail: string };
+    subject_competency: { score: number; weight: number; contribution: number; detail: string };
+    class_familiarity:  { score: number; weight: number; contribution: number; detail: string };
+    recency_penalty:    { score: number; weight: number; contribution: number; detail: string };
+  };
+  reason_codes: string[];         // e.g., ["PRIMARY_SUBJECT_MATCH", "LOW_WORKLOAD"]
+};
+```
+
+- `contribution` = `score * weight` (shows how much each criterion contributed to the composite)
+- `detail` = human-readable string: "3 substitutions this term (average: 7.2)" or "Primary subject: Mathematics"
+- `reason_codes` = machine-readable tags for UI badges
+
+### Configuration Model
+
+Per-school rule configuration stored in `substitute_rule_configs`:
+
+| `criteria_key` | `weight` | `enabled` | `custom_params` (JSONB) |
+|---|---|---|---|
+| `workload_balance` | 0.30 | true | `{ "target_distribution": "mean" }` |
+| `subject_competency` | 0.35 | true | `{ "primary": 1.0, "secondary": 0.75, "capable": 0.4, "none": 0.0 }` |
+| `class_familiarity` | 0.20 | true | `{ "decay_half_life_terms": 3 }` |
+| `recency_penalty` | 0.15 | true | `{ "window_days": 14, "shape": "linear" }` |
+| `weekly_substitute_cap` | — | true | `{ "max_per_week": 5 }` |
+| `exclusion` | — | true | `{ "teacher_ids": [], "subject_ids": [], "grade_level_ids": [] }` |
+
+Constraints on configuration:
+- Sum of enabled criteria weights must equal 1.0 (validated on save)
+- All weights must be in [0, 1]
+- At least one criterion must be enabled
+- `weekly_substitute_cap` must be ≥ 1
+
+### Performance Characteristics
+
+For school scale: ~100 teachers, ~5-10 leave events/day, ~3-5 affected sessions per leave.
+
+| Phase | Complexity | Expected Time | Notes |
+|---|---|---|---|
+| Feasibility | O(n) per session | <10ms | Single query with JOINs |
+| Workload aggregation | O(n) | <20ms | Cached in-memory per request |
+| Scoring (all criteria) | O(n) per session | <30ms | Pure arithmetic per candidate |
+| Ranking | O(n log n) per session | <10ms | Sort ≤100 items |
+| **Total per session** | **O(n log n)** | **<100ms** | Well under 2s target |
+| **Total per leave (5 sessions)** | — | **<500ms** | Parallelizable per session |
+
+Cache strategy:
+- `sub_count(u)` per term: computed once per recommendation request, held in memory
+- `teacher_competencies` and `teacher_class_familiarities`: fetched once per request
+- No Redis required for MVP; in-memory per request is sufficient at this scale
+
+### Testing Strategy
+
+**Unit Tests — Scoring Engine**
+- Test each criterion in isolation with controlled inputs
+- Test boundary conditions: zero candidates, one candidate, all identical scores
+- Test tie-breaking determinism
+- Test weight changes: if w_B is set to 1.0 and others to 0.0, ranking must exactly follow competency tiers
+- Test configuration validation: reject configs where weights don't sum to 1.0
+
+**Unit Tests — Feasibility Filter**
+- Teacher already teaching at same period → excluded
+- Teacher on leave → excluded
+- Teacher at weekly cap → excluded
+- Teacher excluded by subject → excluded
+
+**Integration Tests — End-to-End Recommendation**
+- Given a seed database with 10 teachers, 20 sessions, 3 competency records, 2 familiarity records
+- Apply leave for a math session
+- Verify ranked order matches expected composite scores
+- Verify score breakdown sums correctly
+
+**Fairness Regression Tests**
+- Simulate 50 random leave events across a term
+- Assert TFI ≥ 0.80
+- Assert no teacher receives >2× average substitute count
+
+### Migration Path: Weighted Scoring → CP-SAT (Future)
+
+The weighted scoring approach is appropriate for MVP because:
+1. It is explainable, testable, and fast
+2. It does not require external solver dependencies
+3. It supports human-in-the-loop (admin override) naturally
+
+If future requirements demand **auto-assignment** or **global optimization** (e.g., assign substitutes for an entire week simultaneously to maximize total composite score across all sessions), the architecture can migrate to **Google OR-Tools CP-SAT**:
+
+```
+Current:   Per-session greedy ranking (fast, explainable)
+Future:    Global CP-SAT model with:
+           - Decision variables: x_{u,s} ∈ {0,1} (teacher u assigned to session s)
+           - Hard constraints: availability, caps, exclusions
+           - Soft objective: maximize Σ composite_score(u,s) * x_{u,s}
+           - Time limit: 5s, return best feasible solution
+```
+
+Migration checklist (for future spike):
+1. Add `ortools` dependency to backend
+2. Build CP-SAT model generator from existing feasibility + scoring logic
+3. A/B test: weighted scoring vs CP-SAT on historical leave data
+4. Preserve explainability: CP-SAT objective value maps back to composite_score
+
 ## Error Handling And Observability [AIH]
 - User-facing errors: Localized, actionable messages. Schedule conflicts show exactly which teacher/room is double-booked.
 - Server/API errors: Structured error with code, message key, and safe params for localization.
@@ -124,7 +407,7 @@ Use stable IDs so implementation and validation tasks can map to contracts.
 - Critical performance paths: Substitute recommendation query must complete in <2s for 100 teachers.
 - Caching strategy: Teacher workload per term can be cached briefly (Redis or in-memory) during recommendation.
 - Pagination/streaming/batching: Session lists paginated; report queries server-side paginated.
-- Known limits: Algorithm is O(n) per candidate where n = sessions per term; acceptable for MVP scale.
+- Known limits: Scoring is O(n) per session; ranking is O(n log n) per session where n = teacher count. Total per-leave recommendation is well under 2s at MVP scale. See "Substitute Matching Algorithm Specification" for exact performance model.
 
 ## Technical Decisions Needing Approval [AIH]
 | Decision | Options | Recommendation | Impact | Approval status |

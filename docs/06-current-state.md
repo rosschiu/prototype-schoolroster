@@ -54,6 +54,7 @@ Coding may start only when:
 - Capability: Safety and permissions drafted (`docs/03-safety-and-permissions.md`).
 - Capability: Quality and release drafted (`docs/04-quality-and-release.md`).
 - Capability: Steck codebase explored and architecture understood.
+- Capability: Formal substitute matching algorithm specification added to system design doc (3-phase pipeline: feasibility filter → multi-criteria scoring → ranking + explainability).
 
 ## What Is In Progress [AIH]
 - Item: Human review of source docs
@@ -71,11 +72,15 @@ Coding may start only when:
 - Gap: Board plan not yet compiled.
 - Gap: Steck merge path is conceptual; concrete file mapping and migration plan need to be created as tasks.
 - Gap: Algorithm test fixtures and example data not yet created.
+- Gap: System design doc algorithm spec needs human review and approval.
 
 ## Recent Important Changes [AIH]
 - Date: 2026-04-26
 - Change: Drafted all five source docs for the Steck Teacher Rostering Module.
 - Why it mattered: Established the product, technical, security, and quality foundation for the module.
+- Date: 2026-04-26
+- Change: Added formal Substitute Matching Algorithm Specification to system design doc after web research confirmed this is a multi-criteria optimization problem (CSP / nurse scheduling analogue).
+- Why it mattered: Prevents implementation of a naive CRUD substitute picker; establishes exact scoring formulas, normalization, fairness metrics (TFI), explainability contract, and a migration path to CP-SAT if needed.
 
 ## Notes for New Contributors or Agents [AIH]
 - Start here: Read `AGENTS.md`, `docs/00-app-definition.md`, this file, `docs/07-decision-log.md`, then inspect `project/index.html`.
