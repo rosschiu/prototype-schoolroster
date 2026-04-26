@@ -1,0 +1,1714 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project Task Board</title>
+<style>
+:root{--bg:#f5f4ee;--panel:#fffdf7;--ink:#182018;--muted:#657064;--line:#d9ded3;--accent:#2f6c4f;--accent-2:#bc6b2f;--accent-soft:#dcecdf;--info-soft:#dce8f6;--warn:#9b6b1f;--warn-soft:#f7ead2;--danger:#9a3d32;--danger-soft:#f5ddda;--focus:#204d39;--shadow:0 18px 50px rgba(28,35,26,.12)}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(circle at 12% 0,#e8efe0 0,transparent 30rem),linear-gradient(180deg,#f0eee3 0,var(--bg) 22rem)}
+body.modal-open{overflow:hidden}
+h1,h2,h3,h4,p{margin:0}
+a{color:var(--focus);text-decoration:none;border-bottom:1px solid rgba(32,77,57,.18)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;background:#eef2ec;border-radius:6px;padding:2px 5px}
+.shell{max-width:1760px;margin:0 auto;padding:24px}
+.topbar{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(420px,.9fr);gap:16px;margin-bottom:16px}
+.panel{background:rgba(255,253,247,.94);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 24px rgba(24,32,24,.04)}
+.hero{padding:22px 24px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-70px;top:-90px;width:240px;height:240px;border-radius:50%;background:rgba(188,107,47,.14)}
+.eyebrow{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:11px;margin-bottom:8px}
+.hero h1{font-size:30px;margin-bottom:8px;letter-spacing:-.03em}
+.meta,.mini{color:var(--muted)}
+.hero .focus{margin-top:14px;display:inline-flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--focus);padding:8px 12px;border-radius:999px;font-weight:650}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px}
+.stat{border:1px solid var(--line);border-radius:15px;padding:13px;background:#fbfcf8;min-width:0}
+.stat .label{color:var(--muted);font-size:12px;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .value{font-size:25px;font-weight:750;letter-spacing:-.03em}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:10px 12px;cursor:pointer;font:inherit}
+.btn:hover{border-color:#b8c2b4}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.notice{margin-bottom:16px;padding:12px 14px;border:1px dashed var(--line);border-radius:14px;background:rgba(255,255,255,.7);color:var(--muted)}
+.overview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.overview-card{padding:15px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.78)}
+.overview-card h3{font-size:14px;margin-bottom:8px}
+.overview-card strong{display:block;font-size:20px;letter-spacing:-.03em;margin-bottom:4px}
+.board-sections{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,.72fr);gap:16px;margin-bottom:16px}
+.section-pad{padding:16px 18px}
+.tree{display:grid;gap:10px}
+.tree-item{border:1px solid var(--line);border-radius:14px;background:#fbfcf8;padding:12px}
+.tree-children{margin-top:8px;padding-left:14px;border-left:2px solid #e5e9df;display:grid;gap:8px}
+.issue{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;margin-top:8px}
+.issue.warn{border-color:#ead3a6;background:#fff8eb}
+.issue.danger{border-color:#e5b8b2;background:#fff1ef}
+.status-good{color:var(--focus)}.status-warn{color:var(--warn)}.status-bad{color:var(--danger)}
+.editor{display:none;margin-bottom:16px;padding:16px}
+.editor.open{display:block}
+.editor textarea{min-height:320px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.editor .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.filters{display:grid;grid-template-columns:minmax(260px,1.7fr) repeat(5,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+input,select,textarea{width:100%;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px 12px;font:inherit}
+.statusbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.pill{border:1px solid var(--line);background:rgba(255,255,255,.82);border-radius:999px;padding:8px 12px;cursor:pointer;color:var(--ink)}
+.pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.list{overflow:hidden}
+.list-head{display:flex;justify-content:space-between;gap:14px;align-items:end;padding:16px 18px;border-bottom:1px solid var(--line)}
+.list-head h2{font-size:22px;letter-spacing:-.02em}
+.list-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.list-wrap{max-height:calc(100vh - 330px);min-height:420px;overflow:auto;overscroll-behavior:contain}
+.row{display:grid;grid-template-columns:118px minmax(280px,1.8fr) 92px 96px minmax(110px,.7fr) minmax(120px,.8fr) 108px;gap:10px;padding:12px 18px;border-bottom:1px solid #edf0eb;cursor:pointer;align-items:start}
+.row:nth-child(even){background:rgba(250,251,246,.55)}
+.row.sel,.row:hover{background:#f0f6ee}
+.row:focus{outline:2px solid var(--accent);outline-offset:-2px}
+.id{font-weight:750;font-size:12px}
+.title{font-weight:700;margin-bottom:4px}
+.summary{color:var(--muted);font-size:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:72px;padding:6px 8px;border-radius:999px;font-size:12px;font-weight:750;border:1px solid transparent;white-space:nowrap}
+.st-draft{background:#eef0f2;color:#51606d}.st-ready{background:var(--accent-soft);color:var(--focus)}.st-doing{background:var(--info-soft);color:#1f5186}.st-blocked{background:var(--danger-soft);color:var(--danger)}.st-review{background:#ece2f6;color:#6b3e91}.st-done{background:#e5ede3;color:#436147}
+.pr-critical{background:#f3d7d4;color:#8e3027}.pr-high{background:var(--warn-soft);color:var(--warn)}.pr-medium{background:#e8edf0;color:#4d626d}.pr-low{background:#edf1eb;color:#5b675d}
+.modal{position:fixed;inset:0;display:none;z-index:20}
+.modal.open{display:block}
+.modal-backdrop{position:absolute;inset:0;background:rgba(18,24,18,.46);backdrop-filter:blur(3px)}
+.modal-card{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(960px,calc(100vw - 28px));max-height:calc(100vh - 40px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
+.modal-head{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:18px 20px;border-bottom:1px solid var(--line);background:rgba(255,253,247,.96);backdrop-filter:blur(8px)}
+.modal-head h2{font-size:24px;letter-spacing:-.03em;margin:4px 0}
+.close{font-size:24px;line-height:1;border:1px solid var(--line);border-radius:999px;background:#fff;width:38px;height:38px;cursor:pointer}
+.detail-body{padding:18px 20px 22px}
+.stack{display:grid;gap:14px}
+.block{border:1px solid var(--line);background:#fbfcf8;border-radius:14px;padding:14px}
+.block h3{font-size:13px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.block h4{font-size:14px;margin:10px 0 6px}
+.chips,.links,.plain{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#eef3ee;border-radius:999px;padding:6px 10px;font-size:12px}
+.listy{margin:0;padding-left:18px}
+.listy li{margin:6px 0}
+.empty{padding:48px 18px;text-align:center;color:var(--muted)}
+@media (max-width:1160px){.topbar,.board-sections{grid-template-columns:1fr}.overview-grid{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr 1fr}.list-wrap{max-height:none}.row{grid-template-columns:112px minmax(240px,1fr) 92px 96px 1fr}.row .optional{display:none}}
+@media (max-width:760px){.shell{padding:14px}.stats,.overview-grid{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr}.list-head{align-items:flex-start;flex-direction:column}.row{grid-template-columns:1fr;gap:8px}.row .optional{display:block}.modal-head{padding:15px}.detail-body{padding:15px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <section class="panel hero">
+      <div class="eyebrow">Scalable local board</div>
+      <h1 id="projectTitle">Project Task Board</h1>
+      <p class="meta" id="projectMeta">Loading embedded data...</p>
+      <div class="focus" id="projectFocus">No focus set</div>
+    </section>
+    <section class="panel stats" id="stats"></section>
+  </div>
+  <div class="notice">This board is designed for hundreds of epics, waves, and tasks. Agents can keep dropping work into the embedded <code>board-data</code> JSON; humans can filter the register and open detail in a modal.</div>
+  <div class="toolbar"><button class="btn" id="toggleEditor">Show embedded JSON</button> <button class="btn primary" id="downloadJson">Download JSON snapshot</button> <span class="mini" id="selectionHint">Select a task to inspect details</span></div>
+  <section class="panel editor" id="editorPanel"><div class="eyebrow">Embedded data</div><textarea id="jsonEditor" spellcheck="false"></textarea><div class="actions"><button class="btn primary" id="applyJson">Apply JSON from editor</button> <button class="btn" id="resetJson">Reset editor to current state</button></div></section>
+  <section class="overview-grid" id="planOverview"></section>
+  <section class="board-sections">
+    <div class="panel section-pad"><div class="eyebrow">Epic map</div><div class="tree" id="epicTree"></div></div>
+    <div class="panel section-pad"><div class="eyebrow">Human review dashboard</div><div id="reviewDashboard"></div></div>
+  </section>
+  <div class="filters"><input id="search" placeholder="Search title, summary, ID, tags, docs, implementation detail..."> <select id="typeFilter"><option value="">All types</option></select> <select id="ownerFilter"><option value="">All owners</option></select> <select id="priorityFilter"><option value="">All priorities</option></select> <select id="readyFilter"><option value="">All readiness</option><option value="ready-now">Ready now</option><option value="blocked-by-deps">Blocked by deps</option></select> <select id="parentFilter"><option value="">All parents</option></select></div>
+  <div class="statusbar" id="statusbar"></div>
+  <section class="panel list"><div class="list-head"><div><div class="eyebrow">Task register</div><h2 id="taskCount">0 visible</h2></div><div class="list-tools"><span class="mini" id="volumeHint">Ready for more tasks</span></div></div><div class="list-wrap" id="taskList"></div></section>
+</div>
+<div class="modal" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><div class="eyebrow">Task detail</div><h2 id="detailTitle">No task selected</h2><div class="mini" id="detailMeta">Choose a task from the list</div></div><button class="close" id="closeModal" aria-label="Close task detail">&times;</button></div>
+    <div class="detail-body"><div class="stack" id="detailBody"><div class="block"><p class="mini">Task details will appear here.</p></div></div></div>
+  </section>
+</div>
+<script id="board-data" type="application/json">{
+  "meta": {
+    "project": "Steck Teacher Rostering Module",
+    "updated": "2026-04-26",
+    "focus": "Build MVP module for school schedule planning, teacher leave, and algorithmic substitute teacher assignment. Merge back to Steck after validation.",
+    "approval": {
+      "status": "draft",
+      "approved_by": "",
+      "approved_at": "",
+      "scope_summary": "Timetable planning, teacher leave application, admin notification, substitute matching algorithm with configurable rules, audit trail, and reports.",
+      "implementation_detail_level": "Level 2 for cross-layer flows; Level 3 pseudocode for substitute algorithm.",
+      "open_blockers": [
+        "Source docs need human review and approval",
+        "Board plan not yet human-approved",
+        "Steck merge path needs concrete file mapping"
+      ]
+    },
+    "execution_mode": "primitive_harness",
+    "framework_guides": {
+      "human_interview": "docs/09-human-interview-guide.md",
+      "board_compiler": "docs/10-board-compiler-runbook.md",
+      "execution": "docs/11-execution-runbook.md",
+      "coverage_gates": "docs/12-coverage-and-success-gates.md"
+    }
+  },
+  "assumptions": [
+    {
+      "id": "ASM-001",
+      "area": "Product",
+      "assumption": "Full-day leave is sufficient for MVP; session-level leave can be added later.",
+      "impact": "Simplifies data model and UI. May need expansion for pilot schools with half-day leave needs.",
+      "status": "safe",
+      "linked_tasks": ["TASK-011", "TASK-012"]
+    },
+    {
+      "id": "ASM-002",
+      "area": "Architecture",
+      "assumption": "In-memory per-request workload caching is sufficient for substitute recommendation at MVP scale.",
+      "impact": "Keeps implementation simple. If scale exceeds 100 teachers or recommendation latency spikes, Redis cache may be needed.",
+      "status": "safe",
+      "linked_tasks": ["TASK-025"]
+    },
+    {
+      "id": "ASM-003",
+      "area": "UX",
+      "assumption": "Schedule planner uses grid click-to-assign rather than drag-and-drop for MVP.",
+      "impact": "Faster to implement. DnD can enhance later without breaking existing assignments.",
+      "status": "safe",
+      "linked_tasks": ["TASK-006"]
+    },
+    {
+      "id": "ASM-004",
+      "area": "Integration",
+      "assumption": "Steck notification service API shape is stable and accessible from this module.",
+      "impact": "If Steck notification service changes, leave/substitute notifications will need updates.",
+      "status": "needs human",
+      "linked_tasks": ["TASK-017", "TASK-030", "TASK-042"]
+    },
+    {
+      "id": "ASM-005",
+      "area": "Security",
+      "assumption": "Steck auth/session/role middleware can be imported or replicated in this repo for development, then wired properly at merge.",
+      "impact": "Development auth may be simplified locally but must not leak into production or Steck merge.",
+      "status": "needs human",
+      "linked_tasks": ["TASK-040", "VAL-002", "VAL-009"]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "EPIC-001",
+      "type": "epic",
+      "title": "Timetable & Schedule Planning",
+      "status": "draft",
+      "priority": "high",
+      "summary": "Enable admins to define term timetables, create class sessions, assign teachers, and publish schedules.",
+      "owner": "",
+      "docs": ["docs/00-app-definition.md", "docs/01-product-and-ux.md", "docs/02-system-design.md"],
+      "tags": ["schedule", "timetable", "admin"],
+      "detail": {
+        "goal": "School admin can plan a full term schedule and teachers can view their personal timetable.",
+        "implementation": "Backend: timetable + session services with conflict detection. Frontend: schedule planner grid + teacher timetable view.",
+        "acceptance": ["Admin creates timetable", "Admin assigns teachers to sessions", "System prevents double-booking", "Teachers see published roster"]
+      }
+    },
+    {
+      "id": "EPIC-002",
+      "type": "epic",
+      "title": "Teacher Leave Management",
+      "status": "draft",
+      "priority": "high",
+      "summary": "Enable teachers to apply leave and admins to review, approve, or reject leave requests.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md", "docs/02-system-design.md", "docs/03-safety-and-permissions.md"],
+      "tags": ["leave", "teacher", "admin"],
+      "detail": {
+        "goal": "Teachers apply leave easily; admins manage leave with real-time visibility.",
+        "implementation": "Leave service with impact calculation; teacher leave UI; admin leave management UI.",
+        "acceptance": ["Teacher applies leave", "Admin sees pending leave", "Admin approves or rejects", "Audit trail written"]
+      }
+    },
+    {
+      "id": "EPIC-003",
+      "type": "epic",
+      "title": "Substitute Teacher Matching",
+      "status": "draft",
+      "priority": "high",
+      "summary": "Algorithmically recommend substitute teachers based on workload balance, expertise, familiarity, and configurable school rules.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md", "docs/02-system-design.md"],
+      "tags": ["substitute", "algorithm", "matching"],
+      "detail": {
+        "goal": "Admin receives ranked, explainable substitute recommendations within 2 seconds.",
+        "implementation": "Weighted scoring algorithm across workload, competency, familiarity. Configurable rule weights per school.",
+        "acceptance": ["Algorithm returns ranked list", "Score breakdown is explainable", "Admin can override manually", "Substitute is notified"]
+      }
+    },
+    {
+      "id": "EPIC-004",
+      "type": "epic",
+      "title": "Reporting, Audit & Configuration",
+      "status": "draft",
+      "priority": "medium",
+      "summary": "Audit trail for all rostering actions, reports for workload/leave/substitutes, and admin rule configuration.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md", "docs/03-safety-and-permissions.md", "docs/04-quality-and-release.md"],
+      "tags": ["audit", "reports", "config"],
+      "detail": {
+        "goal": "All actions are auditable and reportable.",
+        "implementation": "Roster audit service; report aggregation queries; rule config UI.",
+        "acceptance": ["Audit events for all mutations", "Workload report accurate", "Leave summary accurate", "Substitute history exportable"]
+      }
+    },
+    {
+      "id": "EPIC-005",
+      "type": "epic",
+      "title": "Steck Integration & Launch Readiness",
+      "status": "draft",
+      "priority": "high",
+      "summary": "Shared contracts, Steck service integration, merge execution, and launch validation.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md", "docs/04-quality-and-release.md"],
+      "tags": ["integration", "steck", "launch"],
+      "detail": {
+        "goal": "Module merges cleanly into Steck and passes launch validation.",
+        "implementation": "Contracts package; auth/notification wiring; merge plan; E2E validation.",
+        "acceptance": ["All tests pass", "No lint/typecheck errors", "Steck merge plan documented", "Launch validation complete"]
+      }
+    },
+    {
+      "id": "WAVE-001",
+      "type": "wave",
+      "title": "Foundation: Timetable & Session Backend",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-001",
+      "summary": "Database schema, services, and API routes for timetables and class sessions.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "schema", "api"],
+      "detail": {
+        "goal": "Timetable and session backend is complete and tested.",
+        "implementation": "Migrations, services, routes, conflict detection.",
+        "acceptance": ["CRUD APIs work", "Conflict detection prevents double-booking"]
+      }
+    },
+    {
+      "id": "WAVE-002",
+      "type": "wave",
+      "title": "Schedule Planner UI & Publish",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-001",
+      "summary": "Admin schedule planner and teacher timetable views.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "ui", "planner"],
+      "detail": {
+        "goal": "Admin can build and publish a schedule; teachers can view their roster.",
+        "implementation": "React grid UI, forms, publish flow, teacher timetable page.",
+        "acceptance": ["Schedule planner is usable", "Publish makes schedule visible"]
+      }
+    },
+    {
+      "id": "WAVE-003",
+      "type": "wave",
+      "title": "Leave Backend & Impact Calculation",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-002",
+      "summary": "Leave request data model, service, impact calculator, and API routes.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "leave", "api"],
+      "detail": {
+        "goal": "Leave backend supports apply, approve, reject, and impact calculation.",
+        "implementation": "Migrations, leave service, impact calculator, routes.",
+        "acceptance": ["Leave CRUD works", "Impacts calculated correctly"]
+      }
+    },
+    {
+      "id": "WAVE-004",
+      "type": "wave",
+      "title": "Leave UI & Notifications",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-002",
+      "summary": "Teacher leave application UI, admin leave management, and notification wiring.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "leave", "notifications"],
+      "detail": {
+        "goal": "Teachers and admins can interact with leave through the UI.",
+        "implementation": "Leave form, admin list/detail, notification integration.",
+        "acceptance": ["Teacher can apply leave", "Admin is notified", "Status updates visible"]
+      }
+    },
+    {
+      "id": "WAVE-005",
+      "type": "wave",
+      "title": "Substitute Rules & Algorithm",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-003",
+      "summary": "Rule configuration data, scoring algorithm, and recommendation API.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["algorithm", "backend", "config"],
+      "detail": {
+        "goal": "Algorithm returns ranked, explainable substitute recommendations.",
+        "implementation": "Rule config tables, competency/familiarity data, scoring algorithm.",
+        "acceptance": ["Algorithm is correct", "Score breakdown is explainable", "Performance <2s"]
+      }
+    },
+    {
+      "id": "WAVE-006",
+      "type": "wave",
+      "title": "Substitute Assignment UI",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-003",
+      "summary": "Admin substitute recommendation panel, manual override, and substitute notifications.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "substitute", "ui"],
+      "detail": {
+        "goal": "Admin can view recommendations, override, and confirm substitute assignments.",
+        "implementation": "Recommendation panel, score breakdown UI, manual search, confirmation flow.",
+        "acceptance": ["Recommendations visible", "Override works", "Substitute notified"]
+      }
+    },
+    {
+      "id": "WAVE-007",
+      "type": "wave",
+      "title": "Audit, Reports & Export",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "EPIC-004",
+      "summary": "Audit trail implementation, reports dashboard, and CSV export.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md", "docs/04-quality-and-release.md"],
+      "tags": ["audit", "reports", "export"],
+      "detail": {
+        "goal": "All rostering actions are auditable and reportable.",
+        "implementation": "Audit service, report APIs, dashboard UI, CSV export.",
+        "acceptance": ["Audit events written", "Reports accurate", "Export works"]
+      }
+    },
+    {
+      "id": "WAVE-008",
+      "type": "wave",
+      "title": "Steck Integration & Merge",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-005",
+      "summary": "Shared contracts, Steck service wiring, merge execution.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["integration", "steck", "contracts"],
+      "detail": {
+        "goal": "Module integrates cleanly with Steck and merges successfully.",
+        "implementation": "Contracts, auth wiring, notification wiring, merge plan execution.",
+        "acceptance": ["Contracts in packages/contracts", "Auth/roles work", "Merge complete"]
+      }
+    },
+    {
+      "id": "TASK-001",
+      "type": "task",
+      "title": "Create timetable and timetable_period tables",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-001",
+      "summary": "PostgreSQL migrations for timetable structure (days, periods, times).",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["migration", "schema"],
+      "detail": {
+        "goal": "Timetable schema supports term-level schedule definition.",
+        "implementation": "Migration SQL: timetables table with JSON or normalized period rows.",
+        "acceptance": ["Schema matches domain model", "Indexes for school_id + term_id"]
+      },
+      "contract": {
+        "objective": "Create durable schema for timetable and periods.",
+        "quality_gate": "Migration runs cleanly; schema reviewed for Steck merge compatibility.",
+        "acceptance": ["timetables table exists", "timetable_periods table exists", "Unique constraints correct"]
+      }
+    },
+    {
+      "id": "TASK-002",
+      "type": "task",
+      "title": "Create class_session table with conflict constraints",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-001",
+      "summary": "PostgreSQL migration for class sessions with teacher and room double-book prevention.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["migration", "schema"],
+      "detail": {
+        "goal": "Session schema prevents invalid bookings at the database level where possible.",
+        "implementation": "class_session table with foreign keys and partial unique indexes for teacher+period and room+period.",
+        "acceptance": ["Schema created", "Conflict indexes in place"]
+      },
+      "contract": {
+        "objective": "Create session schema with conflict prevention.",
+        "quality_gate": "Migration reviewed; constraints tested.",
+        "acceptance": ["class_session table exists", "Double-book indexes prevent overlaps"]
+      }
+    },
+    {
+      "id": "TASK-003",
+      "type": "task",
+      "title": "Build timetable service (CRUD, publish)",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-001",
+      "summary": "Backend service for timetable lifecycle: create, read, update, publish, archive.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "service"],
+      "detail": {
+        "goal": "Timetable service owns all timetable mutations.",
+        "implementation": "Fastify service module with repository pattern. Validate school/term uniqueness.",
+        "acceptance": ["CRUD works", "Publish transitions status", "Audit event on publish"]
+      },
+      "contract": {
+        "objective": "Implement timetable business logic.",
+        "quality_gate": "Unit tests pass; integration tests for CRUD.",
+        "acceptance": ["All CRUD operations tested", "Publish creates audit event"]
+      }
+    },
+    {
+      "id": "TASK-004",
+      "type": "task",
+      "title": "Build session service (CRUD, conflict detection)",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-001",
+      "summary": "Backend service for class sessions with teacher/room conflict validation.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "service"],
+      "detail": {
+        "goal": "Session service prevents double-booking through explicit checks.",
+        "implementation": "Service checks existing assignments before insert/update. Returns clear error on conflict.",
+        "acceptance": ["Conflict detection works", "Error messages are actionable"]
+      },
+      "contract": {
+        "objective": "Implement session business logic with conflict detection.",
+        "quality_gate": "Unit tests for conflict logic; integration tests for API.",
+        "acceptance": ["Double-book prevented", "Room conflict prevented", "Error codes stable"]
+      }
+    },
+    {
+      "id": "TASK-005",
+      "type": "task",
+      "title": "Add API routes for timetable and sessions",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-001",
+      "deps": ["TASK-003", "TASK-004"],
+      "summary": "REST endpoints for timetable and session CRUD under /roster prefix.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["api", "routes"],
+      "detail": {
+        "goal": "API surface supports frontend schedule planner.",
+        "implementation": "Fastify routes calling timetable and session services. Request/validation schemas.",
+        "acceptance": ["Routes return correct shapes", "Errors are structured"]
+      },
+      "contract": {
+        "objective": "Expose timetable and session APIs.",
+        "quality_gate": "Integration tests for all routes.",
+        "acceptance": ["API-001 to API-006 implemented", "Contracts typed"]
+      }
+    },
+    {
+      "id": "INTEGRATION-001",
+      "type": "integration",
+      "title": "Timetable + Session API Convergence",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-001",
+      "deps": ["TASK-005"],
+      "summary": "Verify timetable and session APIs work together end-to-end.",
+      "owner": "",
+      "tags": ["integration", "validation"],
+      "detail": {
+        "goal": "API layer is coherent and ready for UI consumption.",
+        "acceptance": ["Create timetable → add sessions → publish flows end-to-end", "Conflict errors return correctly"]
+      }
+    },
+    {
+      "id": "TASK-006",
+      "type": "task",
+      "title": "Build schedule planner page (grid, period management)",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-002",
+      "deps": ["INTEGRATION-001"],
+      "summary": "React page for admin to define timetable structure and view session grid.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "ui", "planner"],
+      "detail": {
+        "goal": "Admin can visually plan the school schedule.",
+        "implementation": "Grid component showing days x periods. Click to add/edit sessions. Reuse Steck UI primitives.",
+        "acceptance": ["Grid renders correctly", "Periods configurable", "School-scoped data only"]
+      },
+      "contract": {
+        "objective": "Implement schedule planner UI.",
+        "quality_gate": "E2E smoke test passes; a11y keyboard navigable.",
+        "acceptance": ["Planner page loads", "Sessions editable", "Mobile usable for simple edits"]
+      }
+    },
+    {
+      "id": "TASK-007",
+      "type": "task",
+      "title": "Build session creation/editing form",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-002",
+      "summary": "Form to create or edit a class session with subject, grade, teacher, room.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "form"],
+      "detail": {
+        "goal": "Admin can specify all session details.",
+        "implementation": "Modal or side-panel form with dropdowns populated from Steck academic data.",
+        "acceptance": ["Form validates required fields", "Teacher dropdown scoped to school", "Conflict warnings shown"]
+      }
+    },
+    {
+      "id": "TASK-008",
+      "type": "task",
+      "title": "Build teacher assignment dropdown with conflict warnings",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-002",
+      "summary": "Teacher selector that shows availability and warns about conflicts.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "ux"],
+      "detail": {
+        "goal": "Admin knows if a teacher is already booked before assigning.",
+        "implementation": "Dropdown shows busy teachers as disabled or with warning icon. Tooltip explains conflict.",
+        "acceptance": ["Busy teachers indicated", "Warning is clear"]
+      }
+    },
+    {
+      "id": "TASK-009",
+      "type": "task",
+      "title": "Build publish/unpublish flow",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-002",
+      "summary": "Admin can publish a schedule to make it visible to teachers.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "workflow"],
+      "detail": {
+        "goal": "Teachers only see published schedules.",
+        "implementation": "Publish button with confirmation. Unpublish available before term starts. Audit on publish.",
+        "acceptance": ["Publish confirms", "Unpublish works if allowed", "Audit event created"]
+      }
+    },
+    {
+      "id": "TASK-010",
+      "type": "task",
+      "title": "Build teacher personal timetable view",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-002",
+      "summary": "Teacher page showing their own sessions for the current term.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "teacher"],
+      "detail": {
+        "goal": "Teacher knows when and what they teach.",
+        "implementation": "Read-only calendar/grid view. Filter by week/day. Mobile-friendly.",
+        "acceptance": ["Teacher sees own sessions only", "Grid/calendar view works", "Substitute sessions visible if assigned"]
+      }
+    },
+    {
+      "id": "INTEGRATION-002",
+      "type": "integration",
+      "title": "Schedule Planner End-to-End",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-002",
+      "deps": ["TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010"],
+      "summary": "Verify admin can plan schedule and teacher can view roster.",
+      "owner": "",
+      "tags": ["integration", "validation"],
+      "detail": {
+        "goal": "Schedule planning journey works from UI through API to DB.",
+        "acceptance": ["Admin creates and publishes schedule", "Teacher sees personal timetable", "No cross-tenant leakage"]
+      }
+    },
+    {
+      "id": "TASK-011",
+      "type": "task",
+      "title": "Create leave_request and leave_session_impact tables",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-003",
+      "summary": "PostgreSQL migrations for leave requests and their session-level impacts.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["migration", "schema"],
+      "detail": {
+        "goal": "Leave data model supports full-day leave and affected sessions.",
+        "implementation": "leave_request table with status workflow. leave_session_impact links leave to sessions.",
+        "acceptance": ["Tables created", "Foreign keys correct", "Indexes for querying by teacher and date"]
+      },
+      "contract": {
+        "objective": "Create leave schema.",
+        "quality_gate": "Migration reviewed; schema supports future session-level leave.",
+        "acceptance": ["leave_request table exists", "leave_session_impact table exists"]
+      }
+    },
+    {
+      "id": "TASK-012",
+      "type": "task",
+      "title": "Build leave service (apply, approve, reject)",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-003",
+      "summary": "Backend service for leave request lifecycle and status transitions.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "service"],
+      "detail": {
+        "goal": "Leave service enforces valid state transitions.",
+        "implementation": "State machine: pending → approved/rejected. Only admin can approve/reject. Teacher can cancel pending.",
+        "acceptance": ["Valid transitions enforced", "Invalid transitions blocked", "Audit on status change"]
+      },
+      "contract": {
+        "objective": "Implement leave business logic.",
+        "quality_gate": "Unit tests for state machine; integration tests for API.",
+        "acceptance": ["Apply creates pending request", "Approve/reject by admin only", "Audit written"]
+      }
+    },
+    {
+      "id": "TASK-013",
+      "type": "task",
+      "title": "Build leave impact calculator (affected sessions)",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-003",
+      "summary": "Given a teacher and date range, calculate which sessions are affected.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "algorithm"],
+      "detail": {
+        "goal": "System knows exactly which sessions need substitutes.",
+        "implementation": "Query class_session for teacher + date range. Generate leave_session_impact rows on approval.",
+        "acceptance": ["Correct sessions identified", "No duplicates", "Handles term boundaries"]
+      }
+    },
+    {
+      "id": "TASK-014",
+      "type": "task",
+      "title": "Add leave API routes",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-003",
+      "deps": ["TASK-012", "TASK-013"],
+      "summary": "REST endpoints for leave application, review, approve, reject.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["api", "routes"],
+      "detail": {
+        "goal": "API supports teacher leave and admin management.",
+        "implementation": "Routes: POST /roster/leave, GET /roster/leave, POST /roster/leave/:id/approve, POST /roster/leave/:id/reject.",
+        "acceptance": ["Teacher can apply", "Admin can list and act", "Permission checks enforced"]
+      },
+      "contract": {
+        "objective": "Expose leave APIs.",
+        "quality_gate": "Integration tests for all leave routes.",
+        "acceptance": ["API-008 to API-011 implemented", "Contract types in packages/contracts"]
+      }
+    },
+    {
+      "id": "INTEGRATION-003",
+      "type": "integration",
+      "title": "Leave Backend Convergence",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-003",
+      "deps": ["TASK-014"],
+      "summary": "Verify leave service, impact calculator, and routes work together.",
+      "owner": "",
+      "tags": ["integration", "validation"],
+      "detail": {
+        "goal": "Leave backend is coherent.",
+        "acceptance": ["Apply → calculate impacts → approve → impacts created", "Reject leaves no impacts"]
+      }
+    },
+    {
+      "id": "TASK-015",
+      "type": "task",
+      "title": "Build teacher leave application page",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-004",
+      "deps": ["INTEGRATION-003"],
+      "summary": "Teacher-facing UI to apply for leave with date picker and reason.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "teacher", "form"],
+      "detail": {
+        "goal": "Teacher can apply leave in under 1 minute.",
+        "implementation": "Simple form: date range picker, leave type dropdown, reason textarea. Show personal calendar preview.",
+        "acceptance": ["Form is mobile-friendly", "Validation is clear", "Confirmation shown after submit"]
+      },
+      "contract": {
+        "objective": "Implement teacher leave UI.",
+        "quality_gate": "E2E test passes; a11y checks pass.",
+        "acceptance": ["Teacher can submit leave", "Errors are actionable", "Mobile usable"]
+      }
+    },
+    {
+      "id": "TASK-016",
+      "type": "task",
+      "title": "Build admin leave management page",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-004",
+      "summary": "Admin UI to review pending leave, see affected sessions, and act.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "admin"],
+      "detail": {
+        "goal": "Admin can efficiently process leave requests.",
+        "implementation": "List view with filters (pending, approved, rejected). Detail panel with affected sessions and teacher info.",
+        "acceptance": ["List is sortable/filterable", "Detail shows all relevant info", "Approve/reject buttons work"]
+      }
+    },
+    {
+      "id": "TASK-017",
+      "type": "task",
+      "title": "Wire leave notifications via Steck notification service",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-004",
+      "summary": "Send in-app and email notifications when leave is applied or approved.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["integration", "notifications"],
+      "detail": {
+        "goal": "Relevant users are notified in real time.",
+        "implementation": "Call Steck notification service on leave apply (notify admin) and approve (notify teacher + substitute).",
+        "acceptance": ["Admin notified on apply", "Teacher notified on decision", "Substitute notified on assignment"]
+      },
+      "contract": {
+        "objective": "Integrate with Steck notifications.",
+        "quality_gate": "Integration test with notification stub.",
+        "acceptance": ["Notification payload correct", "Deep link to leave detail"]
+      }
+    },
+    {
+      "id": "TASK-018",
+      "type": "task",
+      "title": "Build leave status display for teachers",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "WAVE-004",
+      "summary": "Teacher view of their leave history and current request status.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "teacher"],
+      "detail": {
+        "goal": "Teacher can track their leave.",
+        "implementation": "Simple list/table showing dates, type, status, and admin response if any.",
+        "acceptance": ["History is accurate", "Status badges are clear"]
+      }
+    },
+    {
+      "id": "INTEGRATION-004",
+      "type": "integration",
+      "title": "Leave End-to-End",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-004",
+      "deps": ["TASK-015", "TASK-016", "TASK-017", "TASK-018"],
+      "summary": "Verify teacher can apply leave and admin can manage it through the UI.",
+      "owner": "",
+      "tags": ["integration", "validation"],
+      "detail": {
+        "goal": "Leave journey works end-to-end.",
+        "acceptance": ["Teacher applies leave", "Admin receives notification and reviews", "Admin approves", "Teacher sees update"]
+      }
+    },
+    {
+      "id": "TASK-019",
+      "type": "task",
+      "title": "Create substitute rule and competency tables",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "summary": "PostgreSQL migrations for substitute rules, teacher competencies, and class familiarities.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["migration", "schema"],
+      "detail": {
+        "goal": "Schema supports algorithm inputs.",
+        "implementation": "substitute_rule_config, teacher_competency, teacher_class_familiarity tables.",
+        "acceptance": ["Tables created", "School-scoped", "Defaults seeded"]
+      },
+      "contract": {
+        "objective": "Create algorithm data schema.",
+        "quality_gate": "Migration reviewed.",
+        "acceptance": ["All three tables exist", "Indexes for query performance"]
+      }
+    },
+    {
+      "id": "TASK-020",
+      "type": "task",
+      "title": "Build rule-config service and admin UI",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "summary": "Admin can configure substitute matching rule weights per school.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md", "docs/01-product-and-ux.md"],
+      "tags": ["backend", "frontend", "config"],
+      "detail": {
+        "goal": "Each school can tune the algorithm to their priorities.",
+        "implementation": "Service to CRUD rule configs. UI with sliders/toggles for weights and enabled criteria.",
+        "acceptance": ["Weights persist", "Enabled/disabled criteria respected", "Validation prevents invalid weights"]
+      }
+    },
+    {
+      "id": "TASK-021",
+      "type": "task",
+      "title": "Build competency/familiarity admin UI",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "WAVE-005",
+      "summary": "Admin can manage teacher subject competencies and class familiarity scores.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["frontend", "admin"],
+      "detail": {
+        "goal": "Algorithm inputs are maintainable by admin.",
+        "implementation": "Table/grid UI for bulk editing competencies. Familiarity can be auto-derived and manually overridden.",
+        "acceptance": ["Competency levels editable", "Familiarity scores visible and editable"]
+      }
+    },
+    {
+      "id": "TASK-022",
+      "type": "task",
+      "title": "Implement workload balancing scorer",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "summary": "Algorithm component: calculate each teacher's current semester workload and score candidates inversely.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["algorithm", "backend"],
+      "detail": {
+        "goal": "Teachers with fewer substitute duties are preferred.",
+        "implementation": "Count regular sessions + substitute assignments per teacher in current term. Lower count = higher score.",
+        "acceptance": ["Workload counts are accurate", "Score decreases as workload increases", "Handles term boundaries"]
+      },
+      "contract": {
+        "objective": "Implement workload criterion.",
+        "quality_gate": "Unit tests with fixtures.",
+        "acceptance": ["Unit tests pass", "Edge cases handled: zero workload, very high workload"]
+      }
+    },
+    {
+      "id": "TASK-023",
+      "type": "task",
+      "title": "Implement subject expertise scorer",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "summary": "Algorithm component: score candidates by their competency level for the session's subject.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["algorithm", "backend"],
+      "detail": {
+        "goal": "Teachers qualified for the subject are preferred.",
+        "implementation": "Lookup teacher_competency for subject. Map level to score (primary > secondary > capable > none).",
+        "acceptance": ["Primary competency scores highest", "No competency scores lowest", "Tie-breaking is deterministic"]
+      },
+      "contract": {
+        "objective": "Implement expertise criterion.",
+        "quality_gate": "Unit tests with fixtures.",
+        "acceptance": ["Unit tests pass", "All competency levels scored"]
+      }
+    },
+    {
+      "id": "TASK-024",
+      "type": "task",
+      "title": "Implement class familiarity scorer",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "summary": "Algorithm component: score candidates by their historical relationship with the target class.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["algorithm", "backend"],
+      "detail": {
+        "goal": "Teachers who know the class are preferred.",
+        "implementation": "Lookup teacher_class_familiarity. Score based on familiarity_score and recency (last_taught_term).",
+        "acceptance": ["Higher familiarity scores higher", "Recent teaching weighted more", "No history scores lowest"]
+      },
+      "contract": {
+        "objective": "Implement familiarity criterion.",
+        "quality_gate": "Unit tests with fixtures.",
+        "acceptance": ["Unit tests pass", "Recency factor works"]
+      }
+    },
+    {
+      "id": "TASK-025",
+      "type": "task",
+      "title": "Implement weighted composite scoring and ranking",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "deps": ["TASK-022", "TASK-023", "TASK-024"],
+      "summary": "Combine individual criteria using school-configurable weights into a final ranked list.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["algorithm", "backend"],
+      "detail": {
+        "goal": "Final ranking reflects school priorities and is explainable.",
+        "implementation": "Normalize each criterion to 0-1. Multiply by weight. Sum. Return sorted list with breakdown per candidate. Exclude unavailable teachers.",
+        "acceptance": ["Ranking is deterministic", "Breakdown includes per-criterion score", "Weights affect ranking as expected", "Performance <2s for 100 teachers"]
+      },
+      "contract": {
+        "objective": "Implement composite scoring engine.",
+        "quality_gate": "Unit tests for combinations; performance test.",
+        "acceptance": ["All weight combinations tested", "Breakdown present", "Performance benchmark passes"]
+      }
+    },
+    {
+      "id": "TASK-026",
+      "type": "task",
+      "title": "Build substitute recommendation API",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "deps": ["TASK-025"],
+      "summary": "API endpoint that returns ranked substitute candidates for a given leave+session.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["api", "algorithm"],
+      "detail": {
+        "goal": "Frontend can fetch recommendations.",
+        "implementation": "GET /roster/substitutes/recommend?leave_id=&session_id=. Calls scoring engine. Returns candidates with scores.",
+        "acceptance": ["Returns ranked array", "Each candidate has score breakdown", "Respects school rule config"]
+      },
+      "contract": {
+        "objective": "Expose recommendation API.",
+        "quality_gate": "Integration tests.",
+        "acceptance": ["API-012 implemented", "Contract typed"]
+      }
+    },
+    {
+      "id": "INTEGRATION-005",
+      "type": "integration",
+      "title": "Rule Config Convergence",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "deps": ["TASK-020", "TASK-026"],
+      "summary": "Verify rule configuration flows into recommendation API.",
+      "owner": "",
+      "tags": ["integration", "validation"],
+      "detail": {
+        "goal": "Algorithm respects admin configuration.",
+        "acceptance": ["Change weights → ranking changes", "Disabled criteria omitted from scoring"]
+      }
+    },
+    {
+      "id": "TASK-027",
+      "type": "task",
+      "title": "Build substitute recommendation panel in leave management",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-006",
+      "deps": ["INTEGRATION-005"],
+      "summary": "UI panel showing ranked substitutes for each affected session in a leave request.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "ui", "substitute"],
+      "detail": {
+        "goal": "Admin sees recommendations inline while reviewing leave.",
+        "implementation": "For each affected session, fetch recommendations. Display ranked list with teacher name, score, and breakdown.",
+        "acceptance": ["Panel loads recommendations", "Ranking is clear", "One-click select"]
+      },
+      "contract": {
+        "objective": "Implement recommendation UI.",
+        "quality_gate": "E2E test; a11y check.",
+        "acceptance": ["Recommendations load", "Admin can select candidate"]
+      }
+    },
+    {
+      "id": "TASK-028",
+      "type": "task",
+      "title": "Build score breakdown/explainability UI",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-006",
+      "summary": "Show per-criterion scores so admin understands why a candidate is ranked.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "ux"],
+      "detail": {
+        "goal": "Admin trusts the algorithm because it is transparent.",
+        "implementation": "Expandable card or tooltip showing workload, expertise, familiarity sub-scores. Visual bars or percentages.",
+        "acceptance": ["Breakdown visible on expand", "Visual representation is clear"]
+      }
+    },
+    {
+      "id": "TASK-029",
+      "type": "task",
+      "title": "Build manual override search and selection",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-006",
+      "summary": "Allow admin to bypass recommendations and manually pick any teacher.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "ux"],
+      "detail": {
+        "goal": "Admin retains full control.",
+        "implementation": "Searchable dropdown of all school teachers. Show availability indicator. Require confirmation.",
+        "acceptance": ["Search works", "Unavailable teachers indicated", "Override is audited"]
+      }
+    },
+    {
+      "id": "TASK-030",
+      "type": "task",
+      "title": "Build substitute assignment confirmation and notification",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-006",
+      "summary": "Confirm substitute assignment and notify the substitute teacher.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md", "docs/02-system-design.md"],
+      "tags": ["frontend", "backend", "notifications"],
+      "detail": {
+        "goal": "Substitute knows their assignment immediately.",
+        "implementation": "Confirmation dialog summarizing assignment. On confirm, create substitute_assignment record and send notification.",
+        "acceptance": ["Record created", "Notification sent", "Audit event written"]
+      }
+    },
+    {
+      "id": "TASK-031",
+      "type": "task",
+      "title": "Build my substitute assignments page for teachers",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "WAVE-006",
+      "summary": "Teacher view showing when they are assigned as a substitute.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "teacher"],
+      "detail": {
+        "goal": "Substitute teacher knows their extra duties.",
+        "implementation": "List/table of substitute assignments with date, original teacher, class, and subject.",
+        "acceptance": ["List is accurate", "Integrated into teacher timetable if possible"]
+      }
+    },
+    {
+      "id": "INTEGRATION-006",
+      "type": "integration",
+      "title": "Algorithm Convergence",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-005",
+      "deps": ["TASK-022", "TASK-023", "TASK-024", "TASK-025", "TASK-026"],
+      "summary": "Verify all algorithm components produce correct, explainable rankings.",
+      "owner": "",
+      "tags": ["integration", "validation"],
+      "detail": {
+        "goal": "Algorithm is trustworthy and performant.",
+        "acceptance": ["Unit tests for all criteria", "Composite ranking tested", "Performance <2s"]
+      }
+    },
+    {
+      "id": "INTEGRATION-007",
+      "type": "integration",
+      "title": "Substitute Assignment End-to-End",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-006",
+      "deps": ["TASK-027", "TASK-028", "TASK-029", "TASK-030", "TASK-031"],
+      "summary": "Verify admin can review leave, see recommendations, and assign substitute.",
+      "owner": "",
+      "tags": ["integration", "validation"],
+      "detail": {
+        "goal": "Substitute assignment journey works end-to-end.",
+        "acceptance": ["Admin sees recommendations", "Admin assigns substitute", "Substitute is notified", "Audit trail complete"]
+      }
+    },
+    {
+      "id": "TASK-032",
+      "type": "task",
+      "title": "Create roster_audit_events table",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-007",
+      "summary": "PostgreSQL migration for roster-specific audit events.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["migration", "schema", "audit"],
+      "detail": {
+        "goal": "Audit schema supports rostering actions.",
+        "implementation": "roster_audit_events table with actor, action, object, timestamp, metadata. Append-only.",
+        "acceptance": ["Table created", "Indexes for school + date and object queries"]
+      }
+    },
+    {
+      "id": "TASK-033",
+      "type": "task",
+      "title": "Build roster audit service (write/query)",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-007",
+      "summary": "Service to write audit events and query them for admin review.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "service", "audit"],
+      "detail": {
+        "goal": "All roster mutations are auditable.",
+        "implementation": "Write helper used by all domain services. Query endpoint for admin with filters.",
+        "acceptance": ["Write helper reusable", "Query endpoint supports actor/object/date filters"]
+      }
+    },
+    {
+      "id": "TASK-034",
+      "type": "task",
+      "title": "Wire audit calls into all roster mutations",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-007",
+      "deps": ["TASK-033"],
+      "summary": "Ensure every schedule publish, leave approval, and substitute assignment creates an audit event.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md", "docs/03-safety-and-permissions.md"],
+      "tags": ["backend", "audit"],
+      "detail": {
+        "goal": "Complete audit coverage.",
+        "implementation": "Add audit write calls in timetable publish, session CRUD, leave status changes, substitute assignment.",
+        "acceptance": ["Publish audited", "Leave approve/reject audited", "Substitute assign audited", "Rule change audited"]
+      }
+    },
+    {
+      "id": "TASK-035",
+      "type": "task",
+      "title": "Build workload report API and UI",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "WAVE-007",
+      "summary": "Aggregated report showing regular sessions + substitute duties per teacher.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md", "docs/01-product-and-ux.md"],
+      "tags": ["backend", "frontend", "reports"],
+      "detail": {
+        "goal": "Admin can verify fair workload distribution.",
+        "implementation": "SQL aggregation query. Bar chart or table UI. Filter by term.",
+        "acceptance": ["Counts are accurate", "UI is readable", "Exportable"]
+      }
+    },
+    {
+      "id": "TASK-036",
+      "type": "task",
+      "title": "Build leave summary report API and UI",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "WAVE-007",
+      "summary": "Report showing leave counts by teacher and type.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "frontend", "reports"],
+      "detail": {
+        "goal": "Admin can track leave patterns.",
+        "implementation": "Aggregation by teacher and leave type. Table/chart UI.",
+        "acceptance": ["Counts accurate", "Filterable by date range"]
+      }
+    },
+    {
+      "id": "TASK-037",
+      "type": "task",
+      "title": "Build substitute history report API and UI",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "WAVE-007",
+      "summary": "Report showing who substituted whom, when, and why.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["backend", "frontend", "reports"],
+      "detail": {
+        "goal": "Admin has full substitute visibility.",
+        "implementation": "Query substitute_assignments joined with leave_requests. Table with sort/filter.",
+        "acceptance": ["History is complete", "Searchable by teacher or date"]
+      }
+    },
+    {
+      "id": "TASK-038",
+      "type": "task",
+      "title": "Build CSV export for reports",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "WAVE-007",
+      "summary": "Export button for workload, leave, and substitute reports.",
+      "owner": "",
+      "docs": ["docs/01-product-and-ux.md"],
+      "tags": ["frontend", "backend", "export"],
+      "detail": {
+        "goal": "Admin can share reports outside the system.",
+        "implementation": "API returns CSV stream. Frontend triggers download. UTF-8 with BOM for Excel compatibility.",
+        "acceptance": ["CSV downloads", "Encoding correct", "Columns match UI"]
+      }
+    },
+    {
+      "id": "INTEGRATION-008",
+      "type": "integration",
+      "title": "Reports End-to-End",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "WAVE-007",
+      "deps": ["TASK-035", "TASK-036", "TASK-037", "TASK-038"],
+      "summary": "Verify reports show accurate data and export works.",
+      "owner": "",
+      "tags": ["integration", "validation"],
+      "detail": {
+        "goal": "Reporting journey is complete.",
+        "acceptance": ["Reports accurate after seed data", "CSV export works", "No cross-tenant data"]
+      }
+    },
+    {
+      "id": "TASK-039",
+      "type": "task",
+      "title": "Define shared contracts in packages/contracts",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-008",
+      "summary": "TypeScript types for all rostering API requests and responses.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["contracts", "typescript"],
+      "detail": {
+        "goal": "Frontend and backend share types.",
+        "implementation": "Create `packages/contracts/src/rostering.ts` with all API shapes, enums, and view models.",
+        "acceptance": ["All API-001 to API-021 typed", "No any types in contracts"]
+      },
+      "contract": {
+        "objective": "Establish shared contract types.",
+        "quality_gate": "Typecheck passes; no circular deps.",
+        "acceptance": ["Contracts file created", "Imported by web and api"]
+      }
+    },
+    {
+      "id": "TASK-040",
+      "type": "task",
+      "title": "Wire Steck auth/session/role checks",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-008",
+      "summary": "Ensure all rostering endpoints enforce Steck authentication and authorization.",
+      "owner": "",
+      "docs": ["docs/03-safety-and-permissions.md", "docs/02-system-design.md"],
+      "tags": ["integration", "auth", "security"],
+      "detail": {
+        "goal": "No rostering endpoint is accessible without valid Steck session and role.",
+        "implementation": "Reuse or replicate Steck auth middleware. Add role checks to all routes. School scoping on every query.",
+        "acceptance": ["All routes require auth", "Admin routes reject teachers", "Teacher routes scoped to self", "No cross-tenant access"]
+      }
+    },
+    {
+      "id": "TASK-041",
+      "type": "task",
+      "title": "Wire Steck school/term APIs",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-008",
+      "summary": "Rostering module reads school and term data from Steck.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["integration", "steck"],
+      "detail": {
+        "goal": "Rostering module does not duplicate school/term data.",
+        "implementation": "Internal API calls or shared DB access to Steck school/term tables. Graceful fallback if Steck schema differs.",
+        "acceptance": ["School data readable", "Term data readable", "Graceful on missing data"]
+      }
+    },
+    {
+      "id": "TASK-042",
+      "type": "task",
+      "title": "Wire Steck notification service",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-008",
+      "summary": "Leave and substitute notifications sent through Steck notification system.",
+      "owner": "",
+      "docs": ["docs/02-system-design.md"],
+      "tags": ["integration", "steck", "notifications"],
+      "detail": {
+        "goal": "Notifications are consistent with Steck patterns.",
+        "implementation": "Adapter/wrapper around Steck notification service. Local stub for dev.",
+        "acceptance": ["Notifications send correctly", "Deep links work", "Stub available for local dev"]
+      }
+    },
+    {
+      "id": "TASK-043",
+      "type": "task",
+      "title": "Create Steck merge plan documentation",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-008",
+      "summary": "Document exactly how this module merges back into Steck monorepo.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["docs", "merge"],
+      "detail": {
+        "goal": "Merge is executable without guessing.",
+        "implementation": "Document file mappings, migration order, package changes, route registration, and feature flag if applicable.",
+        "acceptance": ["Merge plan reviewed", "File mapping is complete", "Migration order specified"]
+      }
+    },
+    {
+      "id": "TASK-044",
+      "type": "task",
+      "title": "Execute merge into Steck monorepo",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-008",
+      "deps": ["TASK-039", "TASK-040", "TASK-041", "TASK-042", "TASK-043"],
+      "summary": "Move code, tests, and migrations into Steck repo and validate.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["merge", "steck"],
+      "detail": {
+        "goal": "Module lives in Steck and all tests pass.",
+        "implementation": "Follow merge plan. Run Steck test suite. Fix any integration issues.",
+        "acceptance": ["All Steck tests pass", "Rostering tests pass in Steck", "No lint/typecheck errors"]
+      }
+    },
+    {
+      "id": "INTEGRATION-009",
+      "type": "integration",
+      "title": "Steck Integration Convergence",
+      "status": "draft",
+      "priority": "high",
+      "parent": "WAVE-008",
+      "deps": ["INTEGRATION-002", "INTEGRATION-004", "INTEGRATION-007", "INTEGRATION-008", "TASK-044"],
+      "summary": "Verify full module works inside Steck with real auth, notifications, and data.",
+      "owner": "",
+      "tags": ["integration", "validation", "steck"],
+      "detail": {
+        "goal": "Module is a first-class Steck feature.",
+        "acceptance": ["Auth works", "Notifications work", "All E2E pass in Steck environment", "No regressions"]
+      }
+    },
+    {
+      "id": "VAL-001",
+      "type": "validation",
+      "title": "Unit tests for substitute algorithm",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-003",
+      "deps": ["INTEGRATION-006"],
+      "summary": "Comprehensive unit tests for all scoring criteria and composite ranking.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["test", "algorithm"],
+      "detail": {
+        "goal": "Algorithm is provably correct.",
+        "acceptance": ["Workload scorer tested", "Expertise scorer tested", "Familiarity scorer tested", "Composite ranking tested", "Edge cases covered"]
+      }
+    },
+    {
+      "id": "VAL-002",
+      "type": "validation",
+      "title": "Integration tests for permission boundaries",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-005",
+      "deps": ["INTEGRATION-009"],
+      "summary": "Verify no cross-role or cross-tenant data access.",
+      "owner": "",
+      "docs": ["docs/03-safety-and-permissions.md", "docs/04-quality-and-release.md"],
+      "tags": ["test", "security"],
+      "detail": {
+        "goal": "Permission matrix is enforced.",
+        "acceptance": ["Teacher cannot access admin endpoints", "Teacher cannot view other teacher's leave", "Admin cannot access other school data", "Substitute teacher sees only own assignments"]
+      }
+    },
+    {
+      "id": "VAL-003",
+      "type": "validation",
+      "title": "E2E: Admin creates schedule and publishes",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-001",
+      "deps": ["INTEGRATION-002"],
+      "summary": "Playwright test for full schedule planning journey.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["e2e", "playwright"],
+      "detail": {
+        "goal": "Schedule planner works in browser.",
+        "acceptance": ["Admin logs in", "Creates timetable", "Adds sessions", "Publishes", "Teacher sees roster"]
+      }
+    },
+    {
+      "id": "VAL-004",
+      "type": "validation",
+      "title": "E2E: Teacher applies leave",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-002",
+      "deps": ["INTEGRATION-004"],
+      "summary": "Playwright test for teacher leave application.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["e2e", "playwright"],
+      "detail": {
+        "goal": "Leave application works in browser.",
+        "acceptance": ["Teacher logs in", "Opens leave page", "Selects dates", "Submits", "Sees confirmation"]
+      }
+    },
+    {
+      "id": "VAL-005",
+      "type": "validation",
+      "title": "E2E: Admin assigns substitute",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-003",
+      "deps": ["INTEGRATION-007"],
+      "summary": "Playwright test for leave review and substitute assignment.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["e2e", "playwright"],
+      "detail": {
+        "goal": "Substitute assignment works in browser.",
+        "acceptance": ["Admin sees leave notification", "Opens leave management", "Views recommendations", "Assigns substitute", "Sees confirmation"]
+      }
+    },
+    {
+      "id": "VAL-006",
+      "type": "validation",
+      "title": "E2E: Reports and export",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "EPIC-004",
+      "deps": ["INTEGRATION-008"],
+      "summary": "Playwright test for report viewing and CSV export.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["e2e", "playwright"],
+      "detail": {
+        "goal": "Reports work in browser.",
+        "acceptance": ["Admin opens reports", "Views workload chart", "Downloads CSV", "File contents correct"]
+      }
+    },
+    {
+      "id": "VAL-007",
+      "type": "validation",
+      "title": "Performance smoke: substitute recommendation <2s",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-003",
+      "deps": ["INTEGRATION-006"],
+      "summary": "Benchmark substitute recommendation API with 100 teachers.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["performance", "test"],
+      "detail": {
+        "goal": "Algorithm is fast enough for real use.",
+        "acceptance": ["p95 latency <2s for 100 teachers", "No timeout errors"]
+      }
+    },
+    {
+      "id": "VAL-008",
+      "type": "validation",
+      "title": "Accessibility smoke for schedule planner and leave form",
+      "status": "draft",
+      "priority": "medium",
+      "parent": "EPIC-001",
+      "deps": ["INTEGRATION-002", "INTEGRATION-004"],
+      "summary": "Run axe-core or Playwright a11y checks on critical screens.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["a11y", "test"],
+      "detail": {
+        "goal": "Critical screens meet WCAG 2.1 AA.",
+        "acceptance": ["No critical axe violations", "Keyboard navigation works", "Color not sole status signal"]
+      }
+    },
+    {
+      "id": "VAL-009",
+      "type": "validation",
+      "title": "Security audit: cross-tenant isolation",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-005",
+      "deps": ["INTEGRATION-009"],
+      "summary": "Manual or automated check that no endpoint leaks data across schools.",
+      "owner": "",
+      "docs": ["docs/03-safety-and-permissions.md"],
+      "tags": ["security", "audit"],
+      "detail": {
+        "goal": "Tenant isolation is perfect.",
+        "acceptance": ["All queries scoped by school_id", "URL parameter tampering blocked", "Session validation enforced"]
+      }
+    },
+    {
+      "id": "VAL-010",
+      "type": "validation",
+      "title": "Launch validation: full journey with pilot data",
+      "status": "draft",
+      "priority": "high",
+      "parent": "EPIC-005",
+      "deps": ["INTEGRATION-009", "VAL-001", "VAL-002", "VAL-003", "VAL-004", "VAL-005", "VAL-006", "VAL-007"],
+      "summary": "End-to-end validation with realistic school data before merge/pilot.",
+      "owner": "",
+      "docs": ["docs/04-quality-and-release.md"],
+      "tags": ["launch", "validation"],
+      "detail": {
+        "goal": "Module is ready for real school use.",
+        "acceptance": ["Admin plans schedule in <15 min", "Teacher applies leave in <1 min", "Admin assigns substitute in <2 min", "Reports accurate", "No errors"]
+      }
+    }
+  ],
+  "coverage": {
+    "requirements": [
+      {"req_id": "FR-001", "task_ids": ["TASK-001", "TASK-003", "VAL-003"]},
+      {"req_id": "FR-002", "task_ids": ["TASK-002", "TASK-004", "TASK-006", "TASK-007", "VAL-003"]},
+      {"req_id": "FR-003", "task_ids": ["TASK-003", "TASK-010", "VAL-003"]},
+      {"req_id": "FR-004", "task_ids": ["TASK-011", "TASK-012", "TASK-015", "VAL-004"]},
+      {"req_id": "FR-005", "task_ids": ["TASK-017", "VAL-004"]},
+      {"req_id": "FR-006", "task_ids": ["TASK-025", "TASK-026", "TASK-027", "VAL-001", "VAL-005"]},
+      {"req_id": "FR-007", "task_ids": ["TASK-022", "TASK-025", "VAL-001"]},
+      {"req_id": "FR-008", "task_ids": ["TASK-023", "TASK-025", "VAL-001"]},
+      {"req_id": "FR-009", "task_ids": ["TASK-024", "TASK-025", "VAL-001"]},
+      {"req_id": "FR-010", "task_ids": ["TASK-019", "TASK-020", "INTEGRATION-005"]},
+      {"req_id": "FR-011", "task_ids": ["TASK-029", "TASK-030", "VAL-005"]},
+      {"req_id": "FR-012", "task_ids": ["TASK-030", "TASK-031", "VAL-005"]},
+      {"req_id": "FR-013", "task_ids": ["TASK-032", "TASK-033", "TASK-034", "VAL-002"]},
+      {"req_id": "FR-014", "task_ids": ["TASK-035", "TASK-036", "TASK-037", "VAL-006"]},
+      {"req_id": "FR-015", "task_ids": ["TASK-038", "VAL-006"]},
+      {"req_id": "FR-016", "task_ids": ["TASK-003", "TASK-009", "VAL-003"]},
+      {"req_id": "FR-017", "task_ids": ["TASK-002", "TASK-004", "TASK-008", "VAL-003"]}
+    ],
+    "journeys": [
+      {"journey": "Journey 1: Admin Plans Schedule", "task_ids": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010", "VAL-003"]},
+      {"journey": "Journey 2: Teacher Applies Leave", "task_ids": ["TASK-011", "TASK-012", "TASK-014", "TASK-015", "TASK-017", "TASK-018", "VAL-004"]},
+      {"journey": "Journey 3: Admin Assigns Substitute", "task_ids": ["TASK-012", "TASK-013", "TASK-019", "TASK-020", "TASK-022", "TASK-023", "TASK-024", "TASK-025", "TASK-026", "TASK-027", "TASK-028", "TASK-029", "TASK-030", "TASK-031", "VAL-005"]},
+      {"journey": "Journey 4: Admin Reviews Reports", "task_ids": ["TASK-032", "TASK-033", "TASK-034", "TASK-035", "TASK-036", "TASK-037", "TASK-038", "VAL-006"]}
+    ],
+    "screens": [
+      {"screen": "Schedule Planner", "task_ids": ["TASK-006", "TASK-007", "TASK-008", "TASK-009", "VAL-003", "VAL-008"]},
+      {"screen": "Teacher Timetable", "task_ids": ["TASK-010", "VAL-003"]},
+      {"screen": "Leave Application", "task_ids": ["TASK-015", "VAL-004", "VAL-008"]},
+      {"screen": "Leave Management", "task_ids": ["TASK-016", "TASK-027", "TASK-028", "TASK-029", "TASK-030", "VAL-005"]},
+      {"screen": "Substitute Assignments", "task_ids": ["TASK-031"]},
+      {"screen": "Reports Dashboard", "task_ids": ["TASK-035", "TASK-036", "TASK-037", "TASK-038", "VAL-006"]},
+      {"screen": "Rule Configuration", "task_ids": ["TASK-020", "TASK-021"]}
+    ],
+    "data": [
+      {"entity": "timetable", "task_ids": ["TASK-001", "TASK-003"]},
+      {"entity": "timetable_period", "task_ids": ["TASK-001", "TASK-003"]},
+      {"entity": "class_session", "task_ids": ["TASK-002", "TASK-004", "TASK-006", "TASK-007"]},
+      {"entity": "leave_request", "task_ids": ["TASK-011", "TASK-012", "TASK-015", "TASK-016"]},
+      {"entity": "leave_session_impact", "task_ids": ["TASK-011", "TASK-013"]},
+      {"entity": "substitute_assignment", "task_ids": ["TASK-030", "TASK-031", "TASK-037"]},
+      {"entity": "substitute_rule_config", "task_ids": ["TASK-019", "TASK-020"]},
+      {"entity": "teacher_competency", "task_ids": ["TASK-019", "TASK-021", "TASK-023"]},
+      {"entity": "teacher_class_familiarity", "task_ids": ["TASK-019", "TASK-021", "TASK-024"]},
+      {"entity": "roster_audit_event", "task_ids": ["TASK-032", "TASK-033", "TASK-034"]}
+    ],
+    "apis": [
+      {"api_id": "API-001", "task_ids": ["TASK-003", "TASK-005"]},
+      {"api_id": "API-002", "task_ids": ["TASK-003", "TASK-005"]},
+      {"api_id": "API-003", "task_ids": ["TASK-003", "TASK-005", "TASK-009"]},
+      {"api_id": "API-004", "task_ids": ["TASK-004", "TASK-005"]},
+      {"api_id": "API-005", "task_ids": ["TASK-004", "TASK-005", "TASK-007"]},
+      {"api_id": "API-006", "task_ids": ["TASK-004", "TASK-005"]},
+      {"api_id": "API-007", "task_ids": ["TASK-003", "TASK-010"]},
+      {"api_id": "API-008", "task_ids": ["TASK-012", "TASK-014", "TASK-015"]},
+      {"api_id": "API-009", "task_ids": ["TASK-012", "TASK-014", "TASK-016", "TASK-018"]},
+      {"api_id": "API-010", "task_ids": ["TASK-012", "TASK-014", "TASK-016", "TASK-030"]},
+      {"api_id": "API-011", "task_ids": ["TASK-012", "TASK-014", "TASK-016"]},
+      {"api_id": "API-012", "task_ids": ["TASK-025", "TASK-026", "TASK-027"]},
+      {"api_id": "API-013", "task_ids": ["TASK-030"]},
+      {"api_id": "API-014", "task_ids": ["TASK-031"]},
+      {"api_id": "API-015", "task_ids": ["TASK-020"]},
+      {"api_id": "API-016", "task_ids": ["TASK-020"]},
+      {"api_id": "API-017", "task_ids": ["TASK-035"]},
+      {"api_id": "API-018", "task_ids": ["TASK-036"]},
+      {"api_id": "API-019", "task_ids": ["TASK-037"]},
+      {"api_id": "API-020", "task_ids": ["TASK-021"]},
+      {"api_id": "API-021", "task_ids": ["TASK-021"]}
+    ],
+    "permissions": [
+      {"rule": "Admin manages schedule", "task_ids": ["TASK-040", "VAL-002"]},
+      {"rule": "Teacher views own timetable", "task_ids": ["TASK-010", "TASK-040", "VAL-002"]},
+      {"rule": "Teacher applies own leave", "task_ids": ["TASK-015", "TASK-040", "VAL-002"]},
+      {"rule": "Admin reviews all leave", "task_ids": ["TASK-016", "TASK-040", "VAL-002"]},
+      {"rule": "Admin assigns substitute", "task_ids": ["TASK-027", "TASK-029", "TASK-040", "VAL-002"]},
+      {"rule": "Substitute sees own assignments", "task_ids": ["TASK-031", "TASK-040", "VAL-002"]},
+      {"rule": "Admin views reports", "task_ids": ["TASK-035", "TASK-036", "TASK-037", "TASK-040", "VAL-002"]},
+      {"rule": "Cross-tenant isolation", "task_ids": ["TASK-040", "VAL-002", "VAL-009"]}
+    ],
+    "launch": [
+      {"check": "Algorithm correctness", "task_ids": ["VAL-001"]},
+      {"check": "Permission safety", "task_ids": ["VAL-002", "VAL-009"]},
+      {"check": "Core E2E journeys", "task_ids": ["VAL-003", "VAL-004", "VAL-005", "VAL-006"]},
+      {"check": "Performance", "task_ids": ["VAL-007"]},
+      {"check": "Accessibility", "task_ids": ["VAL-008"]},
+      {"check": "Launch readiness", "task_ids": ["VAL-010"]}
+    ]
+  }
+}</script>
+<script>
+const STATUS_ORDER=["draft","ready","doing","blocked","review","done"],PRIORITY_ORDER=["critical","high","medium","low"],state={data:null,selected:null,status:"",search:"",type:"",owner:"",priority:"",ready:"",parent:"",modalOpen:false},el=id=>document.getElementById(id);
+function boot(){const raw=el("board-data").textContent.trim();loadData(JSON.parse(raw));wireUI();}
+function wireUI(){el("search").addEventListener("input",event=>{state.search=event.target.value.toLowerCase();render();});el("typeFilter").addEventListener("change",event=>{state.type=event.target.value;render();});el("ownerFilter").addEventListener("change",event=>{state.owner=event.target.value;render();});el("priorityFilter").addEventListener("change",event=>{state.priority=event.target.value;render();});el("readyFilter").addEventListener("change",event=>{state.ready=event.target.value;render();});el("parentFilter").addEventListener("change",event=>{state.parent=event.target.value;render();});el("toggleEditor").addEventListener("click",toggleEditor);el("resetJson").addEventListener("click",resetEditor);el("applyJson").addEventListener("click",applyEditor);el("downloadJson").addEventListener("click",downloadJson);el("closeModal").addEventListener("click",closeModal);el("modalBackdrop").addEventListener("click",closeModal);document.addEventListener("keydown",event=>{if(event.key==="Escape")closeModal();});}
+function toggleEditor(){const panel=el("editorPanel");panel.classList.toggle("open");if(panel.classList.contains("open"))resetEditor();el("toggleEditor").textContent=panel.classList.contains("open")?"Hide embedded JSON":"Show embedded JSON";}
+function resetEditor(){el("jsonEditor").value=JSON.stringify(toPortable(state.data),null,2);}
+function applyEditor(){try{loadData(JSON.parse(el("jsonEditor").value),true);}catch(error){alert(`Invalid JSON: ${error.message}`);}}
+function downloadJson(){const blob=new Blob([JSON.stringify(toPortable(state.data),null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download="board-data.json";link.click();URL.revokeObjectURL(url);}
+function toPortable(data){return {meta:data.meta,assumptions:data.assumptions,coverage:data.coverage,tasks:data.tasks};}
+function loadData(data,writeBack=false){state.data=normalize(data);if(state.selected&&!state.data.byId[state.selected])state.selected=null;populateFilters();render();if(writeBack){el("board-data").textContent=JSON.stringify(toPortable(state.data),null,2);resetEditor();}}
+function normalize(data){const tasks=(data.tasks||[]).map(task=>({parent:null,deps:[],docs:[],tags:[],owner:"",summary:"",detail:{},contract:null,parallel:null,...task})),byId=Object.fromEntries(tasks.map(task=>[task.id,task])),children={},blockers={},types={};for(const task of tasks){if(task.parent)(children[task.parent]||=[]).push(task.id);if(task.type)types[task.type]=(types[task.type]||0)+1;for(const dep of task.deps)(blockers[dep]||=[]).push(task.id);}const normalized={meta:data.meta||{},assumptions:data.assumptions||[],coverage:data.coverage||{},tasks,byId,children,blockers,types};normalized.planIssues=planIssues(normalized);return normalized;}
+function populateFilters(){fillSelect("typeFilter",uniq(state.data.tasks.map(task=>task.type).filter(Boolean)));fillSelect("ownerFilter",uniq(state.data.tasks.map(task=>task.owner).filter(Boolean)));fillSelect("priorityFilter",uniq(state.data.tasks.map(task=>task.priority).filter(Boolean)));fillSelect("parentFilter",uniq(state.data.tasks.map(task=>task.parent).filter(Boolean)));renderStatusPills();}
+function fillSelect(id,items){const select=el(id),first=select.querySelector("option").cloneNode(true),current=select.value;select.innerHTML="";select.appendChild(first);for(const item of items){const option=document.createElement("option");option.value=item;option.textContent=item;select.appendChild(option);}select.value=items.includes(current)||current===""?current:"";}
+function renderStatusPills(){const counts=countBy(state.data.tasks,"status"),bar=el("statusbar");bar.innerHTML="";bar.appendChild(makePill("All",!state.status,()=>{state.status="";render();}));for(const status of STATUS_ORDER)if(counts[status])bar.appendChild(makePill(`${labelStatus(status)} (${counts[status]})`,state.status===status,()=>{state.status=state.status===status?"":status;render();}));}
+function makePill(text,active,handler){const button=document.createElement("button");button.className="pill"+(active?" active":"");button.textContent=text;button.onclick=handler;return button;}
+function render(){renderHero();renderStats();renderOverview();renderEpicTree();const tasks=filteredTasks();renderList(tasks);if(state.modalOpen)renderDetail(state.selected);el("taskCount").textContent=`${tasks.length} visible`;el("volumeHint").textContent=`${state.data.tasks.length} total • ${Object.keys(state.data.types).length} item types`;}
+function renderHero(){const meta=state.data.meta;el("projectTitle").textContent=meta.project||"Project Task Board";el("projectMeta").textContent=`Updated ${meta.updated||"unknown"} • ${state.data.tasks.length} tasks total`;el("projectFocus").textContent=meta.focus||"No focus set";}
+function renderStats(){const tasks=state.data.tasks,stats=[["Total items",tasks.length],["Ready now",tasks.filter(isReadyNow).length],["Blocked",tasks.filter(task=>isBlockedByDeps(task)||task.status==="blocked").length],["Epics",tasks.filter(task=>task.type==="epic").length],["Waves",tasks.filter(task=>task.type==="wave").length],["Validation",tasks.filter(task=>task.type==="validation").length]];el("stats").innerHTML=stats.map(([label,value])=>`<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`).join("";}
+function renderOverview(){const data=state.data,approval=data.meta.approval||{},blockingAssumptions=data.assumptions.filter(item=>item.status==="blocking"),reviewAssumptions=data.assumptions.filter(item=>item.status==="needs_review"),contractIssues=data.planIssues.filter(issue=>issue.kind==="contract").length,hierarchyIssues=data.planIssues.filter(issue=>issue.kind==="hierarchy").length,approvalClass=approval.status==="approved"?"status-good":approval.status==="blocked"?"status-bad":"status-warn";const coverageCount=coverageItemCount(data.coverage),guides=data.meta.framework_guides||{};el("planOverview").innerHTML=`<article class="overview-card"><div class="eyebrow">Plan approval</div><strong class="${approvalClass}">${escapeHtml(capitalize(approval.status||"draft"))}</strong><p class="mini">${escapeHtml(approval.scope_summary||"No scope summary set.")}</p></article><article class="overview-card"><div class="eyebrow">Hierarchy health</div><strong>${hierarchyIssues?`${hierarchyIssues} issues`:"OK"}</strong><p class="mini">EPIC > wave > task/integration/validation enforcement.</p></article><article class="overview-card"><div class="eyebrow">Task contract health</div><strong>${contractIssues?`${contractIssues} gaps`:"OK"}</strong><p class="mini">Ready implementation items need contracts, integration surfaces, and quality gates.</p></article><article class="overview-card"><div class="eyebrow">Coverage matrices</div><strong>${coverageCount} rows</strong><p class="mini">Requirements, journeys, permissions, data, APIs, and launch proof.</p></article><article class="overview-card"><div class="eyebrow">Execution mode</div><strong>${escapeHtml(capitalize(data.meta.execution_mode||"unset"))}</strong><p class="mini">Use sequential mode for weak agents or primitive harnesses.</p></article><article class="overview-card"><div class="eyebrow">Agent runbooks</div><strong>${Object.keys(guides).length} guides</strong><p class="mini">Interview, compile, execute, and validate gates.</p></article><article class="overview-card"><div class="eyebrow">Assumptions</div><strong>${data.assumptions.length}</strong><p class="mini">${blockingAssumptions.length} blocking, ${reviewAssumptions.length} needs review.</p></article><article class="overview-card"><div class="eyebrow">Plan issues</div><strong>${data.planIssues.length}</strong><p class="mini">Hierarchy, contract, coverage, and dependency gaps.</p></article>`;renderReviewDashboard(blockingAssumptions,reviewAssumptions);}
+function renderReviewDashboard(blockingAssumptions,reviewAssumptions){const approval=state.data.meta.approval||{},issues=state.data.planIssues,openBlockers=approval.open_blockers||[],items=[];for(const blocker of openBlockers)items.push(`<div class="issue danger"><strong>Open blocker</strong><p>${escapeHtml(blocker)}</p></div>`);for(const assumption of [...blockingAssumptions,...reviewAssumptions])items.push(`<div class="issue ${assumption.status==="blocking"?"danger":"warn"}"><strong>${escapeHtml(assumption.id)} · ${escapeHtml(assumption.area)}</strong><p>${escapeHtml(assumption.assumption)}</p><p class="mini">${escapeHtml(assumption.impact||"")}</p>${renderTaskLinks(assumption.linked_tasks||[],"")}</div>`);for(const issue of issues.slice(0,8))items.push(`<div class="issue ${issue.severity==="danger"?"danger":"warn"}"><strong>${escapeHtml(issue.title)}</strong><p>${escapeHtml(issue.message)}</p>${issue.task?renderTaskLinks([issue.task],""):""}</div>`);el("reviewDashboard").innerHTML=items.length?items.join(""):"<p class=\"mini\">No blocking review issues found in the board data.</p>";bindDetailLinks();}
+function renderEpicTree(){const data=state.data,epics=data.tasks.filter(task=>task.type==="epic");el("epicTree").innerHTML=epics.map(epic=>renderTreeItem(epic,0)).join("")||'<p class="mini">No epics defined.</p>';bindDetailLinks();}
+function renderTreeItem(task,depth){const kids=(state.data.children[task.id]||[]).map(id=>state.data.byId[id]).filter(Boolean).sort(taskSort),progress=treeProgress(task);return `<div class="tree-item"><div class="plain"><span class="badge st-${escapeAttr(task.status)}">${labelStatus(task.status)}</span><span class="chip">${escapeHtml(capitalize(task.type))}</span><a href="#" data-task-link="${escapeAttr(task.id)}"><strong>${escapeHtml(task.id)}</strong> · ${escapeHtml(task.title)}</a><span class="mini">${progress.done}/${progress.total} done</span></div>${kids.length?`<div class="tree-children">${kids.map(child=>renderTreeItem(child,depth+1)).join("")}</div>`:""}</div>`;}
+function treeProgress(task){const ids=descendantIds(task.id),all=[task.id,...ids].map(id=>state.data.byId[id]).filter(Boolean).filter(item=>!["epic","wave"].includes(item.type));return {total:all.length,done:all.filter(isDone).length};}
+function descendantIds(id){return (state.data.children[id]||[]).flatMap(child=>[child,...descendantIds(child)]);}
+function coverageItemCount(coverage){return Object.values(coverage||{}).reduce((total,items)=>total+(Array.isArray(items)?items.length:0),0);}
+function planIssues(data){const issues=[];if(!coverageItemCount(data.coverage))issues.push({kind:"coverage",severity:"warn",task:null,title:"Coverage matrices empty",message:"Add requirement, journey, permission, data, API, and launch coverage before board approval."});for(const task of data.tasks){if(["task","integration","validation"].includes(task.type)){const parent=data.byId[task.parent];const grand=parent&&data.byId[parent.parent];if(!parent||parent.type!=="wave"||!grand||grand.type!=="epic")issues.push({kind:"hierarchy",severity:"danger",task:task.id,title:"Invalid hierarchy",message:`${task.id} must sit under WAVE under EPIC.`});}if(task.type==="wave"){const parent=data.byId[task.parent];if(!parent||parent.type!=="epic")issues.push({kind:"hierarchy",severity:"danger",task:task.id,title:"Wave missing epic",message:`${task.id} must sit directly under an epic.`});}if(task.status==="ready"&&["task","integration","validation"].includes(task.type)){const contract=task.contract||{},surface=contract.integration_surface||{};if(!contract.objective||!Object.keys(surface).length||!contract.quality_gate||!contract.acceptance)issues.push({kind:"contract",severity:"warn",task:task.id,title:"Ready item missing contract fields",message:`${task.id} needs objective, integration surface, quality gate, and acceptance before coding.`});}for(const dep of task.deps||[])if(!data.byId[dep])issues.push({kind:"dependency",severity:"danger",task:task.id,title:"Missing dependency",message:`${task.id} references missing dependency ${dep}.`});}if(data.tasks.length&&!data.tasks.some(task=>task.type==="epic"&&/launch/i.test(`${task.id} ${task.title}`)))issues.push({kind:"coverage",severity:"warn",task:null,title:"Launch epic missing",message:"Add launch readiness epic or validation wave before approving a launchable app."});return issues;}
+function filteredTasks(){return state.data.tasks.filter(task=>!state.status||task.status===state.status).filter(task=>!state.type||task.type===state.type).filter(task=>!state.owner||task.owner===task.owner).filter(task=>!state.priority||task.priority===state.priority).filter(task=>!state.parent||task.parent===state.parent).filter(task=>!state.ready||(state.ready==="ready-now"?isReadyNow(task):isBlockedByDeps(task))).filter(matchesSearch).sort(taskSort);}
+function matchesSearch(task){if(!state.search)return true;const detail=flattenDetail(task.detail);return [task.id,task.title,task.summary,task.owner,task.parent,...task.tags||[],...task.docs||[],detail].join(" ").toLowerCase().includes(state.search);}
+function flattenDetail(value){if(!value)return"";if(typeof value==="string")return value;if(Array.isArray(value))return value.join(" ");return Object.values(value).map(flattenDetail).join(" ");}
+function taskSort(a,b){const status=orderIndex(STATUS_ORDER,a.status)-orderIndex(STATUS_ORDER,b.status);if(status)return status;const priority=orderIndex(PRIORITY_ORDER,a.priority)-orderIndex(PRIORITY_ORDER,b.priority);return priority||a.id.localeCompare(b.id,undefined,{numeric:true});}
+function orderIndex(order,value){const index=order.indexOf(value);return index===-1?order.length:index;}
+function renderList(tasks){const list=el("taskList");if(!tasks.length){list.innerHTML='<div class="empty">No tasks match the current filters.</div>';return;}list.innerHTML=tasks.map(task=>{const selected=task.id===state.selected?" sel":"",ready=isReadyNow(task)?"Ready now":isBlockedByDeps(task)?"Waiting on deps":"";return `<article class="row${selected}" data-id="${escapeAttr(task.id)}" tabindex="0"><div><div class="id">${escapeHtml(task.id)}</div><div class="mini">${capitalize(task.type)}</div></div><div><div class="title">${escapeHtml(task.title)}</div><div class="summary">${escapeHtml(task.summary||"")}</div></div><div><span class="badge st-${escapeAttr(task.status)}">${labelStatus(task.status)}</span></div><div><span class="badge pr-${escapeAttr(task.priority)}">${capitalize(task.priority)}</span></div><div class="mini optional">${escapeHtml(task.owner||"-")}</div><div class="mini optional">${escapeHtml(task.parent||"No parent")}</div><div class="mini">${ready}</div></article>`;}).join("");list.querySelectorAll(".row").forEach(row=>{row.addEventListener("click",()=>openTask(row.dataset.id));row.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();openTask(row.dataset.id);}});});}
+function openTask(id){state.selected=id;state.modalOpen=true;renderDetail(id);renderList(filteredTasks());el("detailModal").classList.add("open");document.body.classList.add("modal-open");}
+function closeModal(){if(!state.modalOpen)return;state.modalOpen=false;el("detailModal").classList.remove("open");document.body.classList.remove("modal-open");}
+function renderDetail(id){const task=state.data.byId[id];if(!task)return;el("detailTitle").textContent=`${task.id} · ${task.title}`;el("detailMeta").textContent=`${capitalize(task.type)} • ${labelStatus(task.status)} • ${capitalize(task.priority)} priority`;el("selectionHint").textContent=`Selected ${task.id}`;el("detailBody").innerHTML=`<div class="block"><h3>Summary</h3><p>${escapeHtml(task.summary||"No summary provided.")}</p></div><div class="block"><h3>Execution</h3><div class="plain"><span class="chip">Owner: ${escapeHtml(task.owner||"-")}</span><span class="chip">Parent: ${escapeHtml(task.parent||"-")}</span><span class="chip">Updated: ${escapeHtml(task.updated||"-")}</span><span class="chip">Ready: ${isReadyNow(task)?"Yes":"No"}</span></div></div><div class="block"><h3>Dependencies</h3>${renderTaskLinks(task.deps,"No dependencies")}</div><div class="block"><h3>Blocks</h3>${renderTaskLinks(state.data.blockers[task.id]||[],"Not blocking any task")}</div><div class="block"><h3>Children</h3>${renderTaskLinks(state.data.children[task.id]||[],"No child tasks")}</div><div class="block"><h3>Docs</h3>${(task.docs||[]).length?`<div class="links">${task.docs.map(doc=>`<a href="../${escapeAttr(doc)}" target="_blank">${escapeHtml(doc)}</a>`).join("")}</div>`:'<p class="mini">No doc references</p>'}</div>${renderDetailSections(task.detail)}${renderContractSections(task.contract)}<div class="block"><h3>Tags</h3>${(task.tags||[]).length?`<div class="chips">${task.tags.map(tag=>`<span class="chip">${escapeHtml(tag)}</span>`).join("")}</div>`:'<p class="mini">No tags</p>'}</div>`;bindDetailLinks();}
+function renderDetailSections(detail){if(!detail||typeof detail!=="object")return'<div class="block"><h3>Implementation detail</h3><p class="mini">No structured implementation detail.</p></div>';return [["goal","Goal"],["implementation","Implementation"],["out_of_scope","Out of scope"],["acceptance","Acceptance"],["notes","Notes"]].map(([key,label])=>{const value=detail[key];if(!value||Array.isArray(value)&&!value.length)return"";return `<div class="block"><h3>${label}</h3>${Array.isArray(value)?`<ul class="listy">${value.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`:`<p>${escapeHtml(value)}</p>`}</div>`;}).join("";}
+function renderContractSections(contract){if(!contract)return'<div class="block"><h3>Task contract</h3><p class="mini">No structured subagent contract yet.</p></div>';const rows=[["Objective",contract.objective],["User/system value",contract.user_value],["Context summary",contract.context_summary],["Owned paths",contract.owned_paths],["Allowed touch points",contract.allowed_touch_points],["Integration surface",contract.integration_surface],["Input contract",contract.input_contract],["Output contract",contract.output_contract],["Implementation steps",contract.implementation_steps],["Quality gate",contract.quality_gate],["Acceptance",contract.acceptance],["Handoff",contract.handoff]];return `<div class="block"><h3>Subagent task contract</h3>${rows.map(([label,value])=>renderContractValue(label,value)).join("")}</div>`;}
+function renderContractValue(label,value){if(!value||Array.isArray(value)&&!value.length||typeof value==="object"&&!Array.isArray(value)&&!Object.keys(value).length)return"";if(Array.isArray(value))return `<h4>${label}</h4><ul class="listy">${value.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`;if(typeof value==="object")return `<h4>${label}</h4><div class="chips">${Object.entries(value).map(([key,item])=>`<span class="chip">${escapeHtml(key)}: ${escapeHtml(Array.isArray(item)?item.join(", "):item)}</span>`).join("")}</div>`;return `<h4>${label}</h4><p>${escapeHtml(value)}</p>`;}
+function renderTaskLinks(ids,emptyText){return ids&&ids.length?`<div class="links">${ids.map(id=>{const task=state.data.byId[id];return `<a href="#" data-task-link="${escapeAttr(id)}">${escapeHtml(task?`${id} · ${task.title}`:id)}</a>`;}).join("")}</div>`:`<p class="mini">${emptyText}</p>`;}
+function bindDetailLinks(){document.querySelectorAll("[data-task-link]").forEach(link=>{link.addEventListener("click",event=>{event.preventDefault();openTask(link.dataset.taskLink);});});}
+function isDone(task){return task.status==="done";}
+function isBlockedByDeps(task){return (task.deps||[]).some(dep=>{const found=state.data.byId[dep];return found&&!isDone(found);});}
+function isReadyNow(task){return task.status==="ready"&&!isBlockedByDeps(task);}
+function countBy(items,key){return items.reduce((acc,item)=>{acc[item[key]]=(acc[item[key]]||0)+1;return acc;},{});}
+function uniq(items){return [...new Set(items)].sort();}
+function capitalize(value){return value?value.charAt(0).toUpperCase()+value.slice(1).replace(/-/g," "):"";}
+function labelStatus(value){return value==="doing"?"In Progress":capitalize(value);}
+function escapeHtml(value){return String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");}
+function escapeAttr(value){return escapeHtml(value);}
+boot();
+</script>
+</body>
+</html>
