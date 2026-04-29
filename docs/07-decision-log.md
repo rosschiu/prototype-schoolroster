@@ -131,7 +131,7 @@ Record durable decisions so humans and agents do not re-litigate settled choices
 
 ### DEC-007: Full-day leave only for MVP; session-level leave deferred
 - Date: 2026-04-26
-- Status: Accepted
+- Status: Superseded by DEC-009
 - Decision area: Product / Delivery
 - Related docs: `docs/01-product-and-ux.md`, `docs/00-app-definition.md`
 - Context: The human described leave application but did not specify granularity. Session-level leave is more complex (affects only some periods of a day).
@@ -175,3 +175,135 @@ Record durable decisions so humans and agents do not re-litigate settled choices
   - School requires automatic assignment without human approval per session.
   - Fairness metrics consistently fall below TFI ≥ 0.80 with weighted scoring.
   - Scale grows beyond ~200 teachers or ~3000 sessions/week where O(n log n) ranking becomes a bottleneck.
+
+### DEC-009: MVP supports AM/PM half-day leave and admin impact correction
+- Date: 2026-04-27
+- Status: Accepted
+- Decision area: Product / UX / Architecture
+- Related docs: `docs/00-app-definition.md`, `docs/01-product-and-ux.md`, `docs/02-system-design.md`
+- Context: Human clarified that full-day-only leave was an overlooked constraint and real schools need partial-day leave at least down to AM/PM half-day.
+- Options considered:
+  - Option A: Keep full-day-only leave for MVP.
+  - Option B: Support full-day plus AM/PM half-day leave for MVP.
+  - Option C: Support arbitrary teacher-selected session-level leave for MVP.
+- Final decision: Use Option B.
+- Why: It covers common real school workflows without requiring a complex arbitrary period picker for teachers. The system still computes session-level impacts internally and allows audited admin correction.
+- Consequences:
+  - `leave_requests` includes `duration_type`.
+  - `leave_session_impacts` remains the coverage source of truth.
+  - Timetable configuration must support AM/PM period grouping or boundary time.
+  - Board and validation tasks must cover full-day, AM half-day, PM half-day, and admin impact correction.
+- Follow-up actions: Keep arbitrary session-level leave as future scope unless pilot schools require it.
+- Revisit trigger: Schools need teacher-facing arbitrary period-by-period leave requests.
+
+### DEC-010: Substitute recommendation SLA favors quality with visible run status
+- Date: 2026-04-27
+- Status: Accepted
+- Decision area: Product / UX / Architecture
+- Related docs: `docs/00-app-definition.md`, `docs/01-product-and-ux.md`, `docs/02-system-design.md`, `docs/04-quality-and-release.md`
+- Context: Human clarified that substitute recommendations do not need a strict 2-second response if the algorithm is good and the UI provides proper run status while calculating.
+- Options considered:
+  - Option A: Require all recommendations under 2 seconds.
+  - Option B: Allow up to 2 minutes with clear run status, progress, retry, and manual fallback.
+  - Option C: Run recommendations fully offline/asynchronously only.
+- Final decision: Use Option B.
+- Why: It avoids weakening algorithm quality for an arbitrary speed target while preserving admin trust through visible progress and fallback actions.
+- Consequences:
+  - Recommendation API may return synchronously for fast cases or return a job id for polling.
+  - UI needs a recommendation run-status state.
+  - Performance validation must check both typical latency and long-running status UX.
+- Follow-up actions: Update board tasks for recommendation job/status API and UI.
+- Revisit trigger: Pilot admins find recommendation wait time disruptive or data scale requires background job infrastructure.
+
+### DEC-011: Standalone MVP first, Steck integration near app readiness
+- Date: 2026-04-27
+- Status: Accepted
+- Decision area: Architecture / Delivery
+- Related docs: `docs/00-app-definition.md`, `docs/02-system-design.md`, `docs/03-safety-and-permissions.md`, `docs/04-quality-and-release.md`
+- Context: Human clarified that the module should be built standalone first and integrated with Steck only toward app readiness.
+- Options considered:
+  - Option A: Integrate Steck auth/session/notifications/calendar/resources immediately.
+  - Option B: Build standalone MVP services first, preserve merge-compatible interfaces, integrate Steck near readiness.
+- Final decision: Use Option B.
+- Why: Reduces early dependency on unknown Steck service shapes and lets browser testing start sooner.
+- Consequences:
+  - MVP includes standalone auth/users/roles/school tenancy.
+  - Notifications are mock/local for now.
+  - Calendar/resource/equipment data is owned locally in this module.
+  - Steck integration remains a later board/merge-readiness task.
+- Follow-up actions: Update board tasks and assumptions for standalone auth, mock notifications, and local calendar/resource data.
+- Revisit trigger: Steck integration contracts become available early and are low-risk to wire.
+
+### DEC-012: MVP includes substitute accept/decline, teacher self-service availability, and rich preference rules
+- Date: 2026-04-27
+- Status: Accepted
+- Decision area: Product / UX / Architecture
+- Related docs: `docs/01-product-and-ux.md`, `docs/02-system-design.md`, `docs/03-safety-and-permissions.md`
+- Context: Human clarified remaining product decisions for substitute workflow and rule depth.
+- Options considered:
+  - Substitute flow: admin-confirmed only vs accept/decline.
+  - Availability ownership: admin-managed only vs teacher self-service.
+  - Preference rules: simple hard exclusions/preferred boost vs richer scoped rules.
+- Final decision: Include accept/decline, teacher self-service availability, and richer scoped preference/exclusion rules in MVP.
+- Why: These match real school operations and improve trust in substitution workflows.
+- Consequences:
+  - Assignment lifecycle includes offered, accepted, declined, canceled, completed, and unfilled states.
+  - Teachers manage their own availability.
+  - Rule model supports class, original teacher, subject/grade, subject, teacher, and school-wide scopes.
+- Follow-up actions: Update board tasks/contracts and validation coverage.
+- Revisit trigger: Scope pressure requires a human-approved MVP cut.
+
+### DEC-013: Approve compiled board plan for implementation
+- Date: 2026-04-27
+- Status: Accepted
+- Decision area: Delivery
+- Related docs: `project/index.html`, `docs/06-current-state.md`, `docs/10-board-compiler-runbook.md`, `docs/12-coverage-and-success-gates.md`
+- Context: Source docs `00`-`04` were ready enough for planning, the compiled board had complete contracts, and the human explicitly approved the board.
+- Options considered:
+  - Option A: Keep board in review and continue planning.
+  - Option B: Approve the compiled board and open the first safe foundation execution slice.
+- Final decision: Use Option B.
+- Why: The board now has valid hierarchy, coverage, contracts, and readiness metadata, so implementation can begin on dependency-safe foundation tasks.
+- Consequences: `TASK-057` and `TASK-001` are marked ready; all other items remain draft until dependencies and wave sequence are satisfied.
+- Follow-up actions: Implement ready tasks, run their quality gates, then open the next WAVE-001 tasks only when safe.
+- Revisit trigger: Implementation discovers material mismatch between board contracts and repo reality.
+
+### DEC-014: Real PostgreSQL persistence must follow Steck schema authority
+- Date: 2026-04-27
+- Status: Accepted
+- Decision area: Architecture / Delivery / Data
+- Related docs: `docs/00-app-definition.md`, `docs/02-system-design.md`, `docs/06-current-state.md`, `project/index.html`
+- Context: Human clarified that the app must be backend-backed with real PostgreSQL, not merely API-backed/in-memory, and that any table/entity already existing in Steck must strictly follow Steck's DB schema for a seamless future merge.
+- Options considered:
+  - Option A: Continue with prototype-only `roster_*` identity/term/session tables and in-memory repositories for browser iteration.
+  - Option B: Keep standalone runtime services but persist through Steck-compatible core tables plus new module-owned `rostering_*` tables.
+  - Option C: Move implementation directly into the Steck monorepo now.
+- Final decision: Use Option B.
+- Why: It preserves standalone development speed while removing the major merge risk: incompatible persisted data shape. It also satisfies the MVP requirement that in-scope flows use durable PostgreSQL.
+- Consequences:
+  - Runtime repositories for schedules, leave, resources/calendar, notifications, and audit must be PostgreSQL-backed before further validation counts as MVP evidence.
+  - Prototype duplicate tables such as `roster_schools`, `roster_users`, `roster_user_roles`, `roster_auth_sessions`, and `roster_terms` must be replaced or superseded.
+  - Existing Steck tables (`schools`, `auth_users`, `school_memberships`, `role_assignments`, `auth_sessions`, `teachers`, `terms`, `grade_levels`, `subjects`, `audit_events`, `notification_events`, `notifications`) are authoritative and reused as-is.
+  - Recurring roster slots must use a new module-owned table such as `rostering_schedule_sessions`; Steck's existing dated `class_sessions` table must not be overloaded.
+  - `VAL-004` and `VAL-011` are blocked as final validation until persistence/restart checks pass against PostgreSQL.
+- Follow-up actions: Add a board wave for PostgreSQL/Steck schema alignment and implement it before continuing feature validation.
+- Revisit trigger: Steck main schema changes materially before merge, or human decides to build directly inside the Steck monorepo.
+
+### DEC-015: API runtime requires PostgreSQL unless explicitly opted into local in-memory mode
+- Date: 2026-04-27
+- Status: Accepted
+- Decision area: Architecture / Delivery / Data
+- Related docs: `docs/00-app-definition.md`, `docs/06-current-state.md`, `project/index.html`
+- Context: The human clarified that the app must be real PostgreSQL-backed, not merely API-backed with in-memory runtime state. During `INTEGRATION-010`, the app still needed a safe local/test fallback for unit tests, but the default server runtime should not silently start in non-durable mode.
+- Options considered:
+  - Option A: Keep automatic in-memory fallback whenever `DATABASE_URL` is absent.
+  - Option B: Fail server startup without `DATABASE_URL`, with an explicit `ALLOW_IN_MEMORY_ROSTER_API=true` escape hatch for local/test-only fallback.
+  - Option C: Remove in-memory repositories completely.
+- Final decision: Use Option B.
+- Why: It prevents accidental non-durable MVP/browser validation while preserving fast no-DB unit tests and developer fallback.
+- Consequences:
+  - `apps/api/src/server.ts` fails clearly if `DATABASE_URL` is absent and `ALLOW_IN_MEMORY_ROSTER_API` is not set.
+  - Default service composition remains testable without DB, but production-like server startup is PostgreSQL-first.
+  - Browser schedule and leave flows use backend routes and are expected to persist through PostgreSQL in validation.
+- Follow-up actions: `VAL-018` should use a real `DATABASE_URL` and record schema/restart evidence before unblocking leave validations.
+- Revisit trigger: Steck merge supplies a different runtime configuration pattern or test harness that replaces the local fallback.

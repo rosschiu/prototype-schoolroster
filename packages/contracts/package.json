@@ -1,0 +1,19 @@
+{
+  "name": "@prototype-schoolroster/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./auth": "./src/auth.ts",
+    "./common": "./src/common.ts",
+    "./rostering": "./src/rostering.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo 'contracts tests not configured yet'",
+    "lint": "echo 'contracts lint target not configured yet'"
+  },
+  "devDependencies": {}
+}

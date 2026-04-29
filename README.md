@@ -70,5 +70,25 @@ The project runs in 3 macro phases.
 - Humans use it as the visual execution interface
 - Agents can update the embedded JSON as the project evolves
 
+## Local Postgres 18 Runtime
+This prototype is now expected to run against the existing Docker Postgres 18 container named `pglocal`.
+
+- Container: `pglocal`
+- Image: `postgres:18-alpine`
+- Local URL: `postgres://nexus:nexus@127.0.0.1:5432/nexus2`
+- Default app schema for local dev: `schoolroster_dev`
+- Validation schema: `schoolroster_val18`
+
+Useful commands:
+
+```bash
+npm run dev:api:pglocal
+npm run dev:web
+npm run test:api:pglocal
+npm run validate:pglocal
+```
+
+`validate:pglocal` runs the API tests with `DATABASE_URL`, restarts the API, and writes persistence evidence to `output/val-018-pglocal-evidence.json`.
+
 ## For Coding Agents
 Read `AGENTS.md` first. That file is the operational contract for agent behavior in this repo.

@@ -1,0 +1,36 @@
+{
+  "date": "2026-04-28",
+  "scope": ["VAL-001", "VAL-007", "VAL-016"],
+  "result": "passed",
+  "summary": {
+    "VAL-001": "Algorithm correctness validation passed through deterministic unit and integration tests for workload, subject competency, class familiarity, recency, preference policy, composite ranking, edge cases, and explainability.",
+    "VAL-007": "Recommendation performance/status smoke passed through 100-candidate scorer benchmark, synchronous recommendation route tests, async job polling, idempotent retry, and pglocal PostgreSQL API execution. Browser-level fallback remains tracked by WAVE-006/VAL-015.",
+    "VAL-016": "Teacher availability validation passed: self-service scope is enforced, unavailable teachers are filtered from recommendations, and restored availability makes an otherwise eligible teacher recommendable again."
+  },
+  "commands": [
+    "npm test --workspace @prototype-schoolroster/web",
+    "npm test --workspace @prototype-schoolroster/api",
+    "npm run typecheck",
+    "npm run build",
+    "npm run test:api:pglocal"
+  ],
+  "test_summary": {
+    "web": "4 files passed, 21 tests passed",
+    "api_without_database_url": "84 tests total, 78 passed, 6 skipped because DATABASE_URL is not set",
+    "api_pglocal": "84 tests passed, 0 skipped against existing Docker Postgres 18 pglocal",
+    "typecheck": "passed for api, web, and contracts workspaces",
+    "build": "passed for api, web, and contracts workspaces"
+  },
+  "postgres": {
+    "container": "existing Docker Postgres 18 pglocal",
+    "url": "postgres://nexus:***@127.0.0.1:5432/nexus2"
+  },
+  "files_supporting_evidence": [
+    "apps/api/tests/rostering/substitute-matching/scoring.test.ts",
+    "apps/api/tests/rostering/integration/algorithm-convergence.test.ts",
+    "apps/api/tests/rostering/routes/substitute-recommendation-api.test.ts",
+    "apps/web/tests/rostering/teacher/teacher-availability.test.tsx"
+  ],
+  "bug_fixed_during_validation": "Synchronous recommendation requests now recompute after availability changes instead of returning a stale completed job; async idempotent retry still returns the cached completed job for identical async retry behavior.",
+  "residual_risk": "Full browser recommendation status/fallback and substitute offer UI are still WAVE-006 work, tracked by TASK-027, TASK-030, and VAL-015."
+}

@@ -1,0 +1,20 @@
+{
+  "validation": "VAL-012",
+  "status": "passed",
+  "database": "pglocal postgres:18 on 127.0.0.1:5432/nexus2",
+  "schema": "schoolroster_val012_1777478491429",
+  "webUrl": "http://127.0.0.1:4176",
+  "apiUrl": "http://127.0.0.1:33112",
+  "screenshotPath": "output/playwright/val-012-coverage-lifecycle.png",
+  "checks": {
+    "firstCandidateText": "Substitute B\nAvailable - recommended candidate\nChoose override | ranked: #1 Multi Role Demo\n45% match\nLOW_WORKLOAD\nView breakdown\nSelect\n#2 Substitute B\n45% match\nLOW_WORKLOAD\nView breakdown\nSelect\n#3 Suspended Demo\n45% match\nLOW_WORKLOAD\nView breakdown",
+    "secondCandidateText": "Substitute B\nAvailable - recommended candidate\nChoose override | ranked: #1 Multi Role Demo\n45% match\nLOW_WORKLOAD\nView breakdown\nSelect\n#2 Substitute B\n45% match\nLOW_WORKLOAD\nView breakdown\nSelect\n#3 Suspended Demo\n45% match\nLOW_WORKLOAD\nView breakdown",
+    "teacherAccepted": true,
+    "completedVisible": true,
+    "teacherDeclined": true,
+    "unfilledVisibleAfterDecline": true,
+    "reassignedVisible": true,
+    "canceledVisible": true,
+    "unfilledVisibleAfterCancel": true
+  }
+}

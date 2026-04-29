@@ -1,7 +1,7 @@
 # App Definition
 
 - Human Action: YES
-- Status: Draft
+- Status: READY
 - Owner: Human-selected, AI-structured
 - Inputs: Human intent, business context, stakeholder goals, and Steck platform constraints
 - Owns: App purpose, mode, scope, success criteria, real-vs-mocked decisions, non-goals, and tradeoff rules
@@ -51,14 +51,17 @@ Define the Steck Teacher Rostering module: what is being built, why it matters, 
 ### In Scope Now
 - Yearly/term class schedule planning with session definitions (periods, days, rooms).
 - Teacher working roster derived from the class schedule.
-- Teacher leave application with date/session selection and reason.
+- Teacher leave application with date selection, full-day or half-day (AM/PM) duration, reason, and coverage requirement.
 - Real-time admin notification when leave is applied.
 - Algorithmic substitute teacher recommendation engine with configurable criteria.
 - Substitute criteria: (1) workload balancing across a semester, (2) subject expertise/competency match, (3) class familiarity/relationship, (4) school-configurable rule weights and additional custom rules.
 - Admin override and manual substitute selection.
+- Substitute offer lifecycle with teacher accept/decline, cancellation/reassignment, and completion confirmation.
+- Teacher self-service substitute availability.
+- Rich substitute preference/exclusion rules.
 - Audit trail for all roster changes, leave applications, and substitute assignments.
 - Reporting dashboard: teacher workload, leave summary, substitute history.
-- Integration path back into Steck monorepo (shared auth, users, roles, school tenancy).
+- Standalone MVP auth, users, roles, school tenancy, notifications, school calendar, room/resource data, and later integration path back into Steck monorepo.
 
 ### Not In Scope Now
 - Student attendance tracking (deferred to future SIS scope).
@@ -66,38 +69,44 @@ Define the Steck Teacher Rostering module: what is being built, why it matters, 
 - Deep external calendar sync (Google/Outlook).
 - SMS or push notifications; in-app and email only.
 - Multi-campus / district-wide rostering.
+- Direct Steck auth/notification/calendar/resource integration during early MVP build; integration happens near app readiness/merge.
 - AI-generated lesson plans for substitute teachers.
 - Parent-facing leave or substitute visibility.
 - Mobile-native app.
 
 ### Later / Possible Future Scope [OPT]
-- Partial-day or session-level leave (currently daily granularity).
+- Arbitrary session-level leave selection beyond AM/PM half-day (MVP supports full-day, AM half-day, and PM half-day).
 - Recurring leave patterns (e.g., every Tuesday).
+- External substitute marketplace/pool beyond internal school teachers.
 - Substitute teacher rating/feedback loop.
 - Automatic approval workflows for leave based on school policy.
 - Conflict detection with external school events.
+- SMS/phone callout, payroll/time-and-attendance export, statutory leave workflows, and credential onboarding.
 
 ## Success Criteria [AIH]
 The project is successful when:
 - A school admin can plan a full term schedule and assign teachers to sessions without errors.
 - A teacher can apply leave and see its status in real time.
 - An admin receives a notification within seconds of leave being applied.
-- The substitute recommendation algorithm produces a ranked, explainable list of candidates within 2 seconds for up to 100 teachers.
+- The substitute recommendation algorithm produces a ranked, explainable list of candidates within 2 minutes for up to 100 teachers, with visible run status/progress if it cannot return immediately.
 - The admin can accept a recommendation or manually select a substitute, with all actions audited.
-- A workload report shows fair distribution of substitute duties within a semester.
+- A workload report shows fair distribution of substitute duties for all teachers within a semester.
 - The module can be merged back into Steck with minimal architectural friction.
 
 ## Real vs Mocked [AIH]
 ### Must Be Real
-- Auth: Must integrate with Steck's first-party school-scoped auth.
 - Data persistence: PostgreSQL for schedules, rosters, leave requests, substitute assignments, audit events.
-- Integration: Steck user/role/school membership APIs; Steck notification/email service.
+- Auth/users/roles/school tenancy: standalone MVP runtime may be used before merge, but persistence must use Steck-compatible school, user, membership, role, teacher, and session schema instead of duplicate roster-only identity tables.
+- Data schema: any table/entity already present in Steck is authoritative and must be reused as-is. Rostering may add new module-owned PostgreSQL tables only for concepts not already represented in Steck, and those tables must reference Steck IDs.
+- Notification/email: mock/local delivery service for MVP; persisted notification/audit records should follow Steck-compatible tables/adapters so the module can merge without data-shape rewrites.
+- Calendar/resource data: owned locally in this module for MVP; assume no existing Steck calendar/resource/equipment source is available.
 - Reporting/analytics: Real workload and leave reports from persisted data.
 - Other: Substitute matching algorithm must run against real data.
 
 ### May Be Mocked
 - Integration: External calendar sync (Google/Outlook) — out of scope.
 - Notification: Email provider may be a stub in local development before Steck email integration.
+- Integration: Steck auth/session, Steck notification/email, and Steck calendar/resource APIs may be mocked/deferred until the app is ready for merge.
 - Analytics: Advanced trend analytics beyond basic workload/leave reporting.
 - Other: Early reporting dashboard UI may begin as a safe-to-mock shell.
 
@@ -114,7 +123,7 @@ The project is successful when:
 - Code maintainability required: High. Must merge cleanly into Steck; production-grade for auth, audit, data integrity.
 - Test expectation: Strong tests for the substitute matching algorithm (unit), leave workflow state transitions (integration), and permission boundaries (integration). Selective E2E for core journeys.
 - Security expectation: Production-grade for tenant scoping, role checks, audit, and data access.
-- Performance expectation: Substitute recommendation must return in under 2 seconds for 100 teachers. Schedule planning must feel responsive.
+- Performance expectation: Schedule planning and amendments must feel responsive for non-technical school admins. Substitute recommendation should return quickly when possible, but may take up to 2 minutes for complex cases if the UI shows clear run status, progress/fallback messaging, and allows safe manual fallback.
 - Documentation expectation: Active docs in `docs/` remain source of truth; module must be documented for Steck merge.
 
 ## Acceptable Shortcuts [AIH]
@@ -122,15 +131,16 @@ The project is successful when:
 |---|---|---|
 | Reporting dashboard UI may start as a safe-to-mock shell. | Helps UI work proceed while report data contracts are finalized. | Before pilot or when report data is wired. |
 | Email delivery may use a stub provider in local dev. | Steck email integration path is known but not yet wired in this repo. | Before merge back to Steck or pilot testing. |
-| Partial-day leave is not supported; only full-day leave. | Simplifies first version; most school leave is full-day initially. | When schools request half-day or session-level leave. |
+| Arbitrary teacher-selected session-level leave is not supported; MVP supports full-day, AM half-day, and PM half-day leave. | Covers common real school partial-day cases without building a complex session-picker workflow first. | When schools need arbitrary period-by-period leave requests. |
 
 ## Unacceptable Shortcuts [HMN]
 - Not allowed even in this mode:
-  - Demo-only auth or bypassing Steck role/tenant checks.
   - Cross-tenant data access.
   - Silent mutations to schedule or roster without audit.
   - Hard-deleting leave or substitute records that should be recoverable/auditable.
   - Opaque substitute algorithm with no explainable ranking.
+  - In-memory-only implementation for in-scope schedule, leave, substitute, audit, or report flows.
+  - Duplicate module-owned versions of Steck tables such as schools, users, memberships, roles, teachers, terms, audit events, notifications, or auth sessions.
 - Not allowed without human approval:
   - New dependencies outside Steck's approved stack.
   - Changes to Steck auth, permission, or tenancy models.

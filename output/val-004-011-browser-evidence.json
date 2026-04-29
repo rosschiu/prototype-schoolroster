@@ -1,0 +1,23 @@
+{
+  "database": "pglocal postgres:18-alpine on 127.0.0.1:5432/nexus2",
+  "schema": "schoolroster_val_leave_20260428e",
+  "api": "http://127.0.0.1:33102",
+  "web": "http://127.0.0.1:5174",
+  "tool": "playwright-cli named session schoolroster",
+  "result": "passed",
+  "validatedItems": ["VAL-004", "VAL-011"],
+  "checks": [
+    "Created default timetable through browser API client",
+    "Created AM and PM published sessions for teacher-demo",
+    "AM half-day preview included Math P4A and excluded Science P4B",
+    "Teacher submitted AM half-day leave and saw pending status plus leave.applied notification",
+    "Admin impact adjustment required a reason and added the PM Science P4B session",
+    "Full-day preview included both AM and PM sessions and submitted successfully",
+    "PM half-day preview excluded AM session and included Science P4B",
+    "Teacher leave status and notification log updated after submissions"
+  ],
+  "artifacts": [
+    "output/playwright/val-004-leave-durations.png",
+    "output/playwright/val-011-impact-adjustment.png"
+  ]
+}

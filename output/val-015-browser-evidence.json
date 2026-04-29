@@ -1,0 +1,19 @@
+{
+  "validation": "VAL-015",
+  "status": "passed",
+  "database": "pglocal postgres:18 on 127.0.0.1:5432/nexus2",
+  "schema": "schoolroster_val015_1777478557268",
+  "webUrl": "http://127.0.0.1:4177",
+  "apiUrl": "http://127.0.0.1:33115",
+  "screenshotPath": "output/playwright/val-015-recommendation-status.png",
+  "checks": {
+    "progressWasDelayed": true,
+    "calculatingVisible": true,
+    "retryVisible": true,
+    "manualFallbackVisible": true,
+    "markUnfilledVisible": true,
+    "completedResultVisible": true
+  },
+  "runningText": "Substitute recommendations\nrunning · starting\nRetry\n0%\nManual assignment\nMark unfilled\nManual override\nSearch all school teachers\nMs. Chan\nUnavailable - original teacher on leave\nChoose override\nMr. Lam\nManual override - not in ranked recommendations\nChoose override\nMs. Wong\nManual override - not in ranked recommendations\nChoose override\nMr. Lee\nManual override - not in ranked recommendations\nChoose override\nSubstitute B\nManual override - not in ranked recommendations\nChoose override\nMulti Role Demo\nManual override - not in ranked recommendations\nChoose override",
+  "completedText": "Substitute recommendations\ncompleted · completed\nRetry\n#1 Multi Role Demo\n45% match\nLOW_WORKLOAD\nView breakdown\nSelect\n#2 Substitute B\n45% match\nLOW_WORKLOAD\nView breakdown\nSelect\n#3 Suspended Demo\n45% match\nLOW_WORKLOAD\nView breakdown\nSelect\nManual override\nSearch all school teachers\nMs. Chan\nUnavailable - original teacher on leave\nChoose override\nMr. Lam\nManual override - not in ranked recommendations\nChoose override\nMs. Wong\nManual override - not in ranked recommendations\nChoose override\nMr. Lee\nManual override - not in ranked recommendations\nChoose override\nSubstitute B\nAvailable - recomme"
+}
