@@ -1,0 +1,33 @@
+{
+  "date": "2026-04-29",
+  "validation": "VAL-006 reports and CSV export browser validation",
+  "runtime": {
+    "api": "http://127.0.0.1:3011",
+    "web": "http://127.0.0.1:4174",
+    "database": "postgres://nexus:***@127.0.0.1:5432/nexus2",
+    "schema": "schoolroster_val_reports"
+  },
+  "tool": "playwright-cli session schoolroster_reports",
+  "steps": [
+    "Seeded a Postgres-backed timetable, published session, approved leave, and substitute offer through API routes.",
+    "Opened the Vite app in a real browser.",
+    "Clicked Load reports in the Reports panel.",
+    "Verified workload, leave summary, substitute history, and coverage operations data appeared in the browser snapshot.",
+    "Clicked workload Export CSV and downloaded workload.csv."
+  ],
+  "artifacts": {
+    "screenshot": "output/playwright/val-006-reports-export.png",
+    "csv": "output/val-006-workload.csv"
+  },
+  "csv": {
+    "firstBytes": [
+      239,
+      187,
+      191
+    ],
+    "hasUtf8Bom": true,
+    "containsTeacherSubB": true
+  },
+  "result": "pass",
+  "residualRisk": "Browser validation covers workload CSV export; API/component tests cover leave-summary, substitute-history, and coverage-operations CSV/export paths."
+}

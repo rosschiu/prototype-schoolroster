@@ -123,7 +123,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
   "meta": {
     "project": "Steck Teacher Rostering Module",
     "updated": "2026-04-29",
-    "focus": "WAVE-007 reports are next; workload, leave summary, and substitute history report tasks are ready.",
+    "focus": "WAVE-007 report foundation complete; next ready tasks are TASK-051 coverage operations report and TASK-038 CSV export.",
     "approval": {
       "status": "approved",
       "approved_by": "human",
@@ -553,10 +553,10 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
       "id": "WAVE-007",
       "type": "wave",
       "title": "Audit, Reports & Export",
-      "status": "doing",
+      "status": "done",
       "priority": "medium",
       "parent": "EPIC-004",
-      "summary": "Audit trail implementation, reports dashboard, and CSV export.",
+      "summary": "Audit, reports, coverage operations, CSV export, and WAVE-007 validations are complete.",
       "owner": "",
       "docs": [
         "docs/02-system-design.md",
@@ -575,7 +575,12 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "Reports accurate",
           "Export works"
         ]
-      }
+      },
+      "readiness_note": "Done on 2026-04-29 after report/export browser validation and pglocal quality gate.",
+      "evidence": [
+        "output/val-006-browser-evidence.json",
+        "output/playwright/val-006-reports-export.png"
+      ]
     },
     {
       "id": "WAVE-008",
@@ -602,7 +607,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "Auth/roles work",
           "Merge complete"
         ]
-      }
+      },
+      "readiness_note": "Ready for planning/human confirmation after WAVE-007 completion; Steck merge tasks remain draft until integration scope is confirmed."
     },
     {
       "id": "TASK-001",
@@ -6121,7 +6127,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
       "id": "TASK-035",
       "type": "task",
       "title": "Build workload report API and UI",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "parent": "WAVE-007",
       "summary": "Aggregated report showing regular sessions + substitute duties per teacher.",
@@ -6239,13 +6245,25 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "API-017",
         "PERM-007"
       ],
-      "readiness_note": "Ready after TASK-034 audit write completeness on 2026-04-29; report tasks can proceed independently before integration/export."
+      "readiness_note": "Ready after TASK-034 audit write completeness on 2026-04-29; report tasks can proceed independently before integration/export.",
+      "evidence": {
+        "status": "done",
+        "implementation_result": "Implemented report service/API and admin reports UI for workload, leave summary, and substitute history with permission enforcement and deterministic fixture coverage.",
+        "tests": [
+          "npm test --workspace @prototype-schoolroster/web (27 pass)",
+          "npm test --workspace @prototype-schoolroster/api (88 pass, 7 skipped without DATABASE_URL)",
+          "npm run typecheck",
+          "npm run build",
+          "npm run test:api:pglocal (95 pass against Docker Postgres 18 pglocal)"
+        ],
+        "residual_risk": "CSV export and coverage operations report remain pending WAVE-007 tasks."
+      }
     },
     {
       "id": "TASK-036",
       "type": "task",
       "title": "Build leave summary report API and UI",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "parent": "WAVE-007",
       "summary": "Report showing leave counts by teacher and type.",
@@ -6361,13 +6379,25 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "API-018",
         "PERM-007"
       ],
-      "readiness_note": "Ready after TASK-034 audit write completeness on 2026-04-29; report tasks can proceed independently before integration/export."
+      "readiness_note": "Ready after TASK-034 audit write completeness on 2026-04-29; report tasks can proceed independently before integration/export.",
+      "evidence": {
+        "status": "done",
+        "implementation_result": "Implemented report service/API and admin reports UI for workload, leave summary, and substitute history with permission enforcement and deterministic fixture coverage.",
+        "tests": [
+          "npm test --workspace @prototype-schoolroster/web (27 pass)",
+          "npm test --workspace @prototype-schoolroster/api (88 pass, 7 skipped without DATABASE_URL)",
+          "npm run typecheck",
+          "npm run build",
+          "npm run test:api:pglocal (95 pass against Docker Postgres 18 pglocal)"
+        ],
+        "residual_risk": "CSV export and coverage operations report remain pending WAVE-007 tasks."
+      }
     },
     {
       "id": "TASK-037",
       "type": "task",
       "title": "Build substitute history report API and UI",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "parent": "WAVE-007",
       "summary": "Report showing who substituted whom, when, and why.",
@@ -6485,13 +6515,25 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "API-019",
         "PERM-007"
       ],
-      "readiness_note": "Ready after TASK-034 audit write completeness on 2026-04-29; report tasks can proceed independently before integration/export."
+      "readiness_note": "Ready after TASK-034 audit write completeness on 2026-04-29; report tasks can proceed independently before integration/export.",
+      "evidence": {
+        "status": "done",
+        "implementation_result": "Implemented report service/API and admin reports UI for workload, leave summary, and substitute history with permission enforcement and deterministic fixture coverage.",
+        "tests": [
+          "npm test --workspace @prototype-schoolroster/web (27 pass)",
+          "npm test --workspace @prototype-schoolroster/api (88 pass, 7 skipped without DATABASE_URL)",
+          "npm run typecheck",
+          "npm run build",
+          "npm run test:api:pglocal (95 pass against Docker Postgres 18 pglocal)"
+        ],
+        "residual_risk": "CSV export and coverage operations report remain pending WAVE-007 tasks."
+      }
     },
     {
       "id": "TASK-038",
       "type": "task",
       "title": "Build CSV export for reports",
-      "status": "draft",
+      "status": "done",
       "priority": "medium",
       "parent": "WAVE-007",
       "summary": "Export button for workload, leave, and substitute reports.",
@@ -6511,7 +6553,20 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "CSV downloads",
           "Encoding correct",
           "Columns match UI"
-        ]
+        ],
+        "implementation_result": "Done on 2026-04-29: report CSV export is backed by Fastify routes for workload, leave summary, substitute history, and coverage operations; the browser downloads CSV with UTF-8 BOM preserved for Excel compatibility.",
+        "validation": {
+          "result": "pass",
+          "date": "2026-04-29",
+          "commands": [
+            "npm test --workspace @prototype-schoolroster/web",
+            "npm test --workspace @prototype-schoolroster/api",
+            "npm run typecheck",
+            "npm run build",
+            "npm run test:api:pglocal",
+            "npm run lint"
+          ]
+        }
       },
       "contract": {
         "objective": "Admin can share reports outside the system.",
@@ -6598,13 +6653,18 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "FR-015",
         "JOURNEY-004",
         "SCREEN-006"
+      ],
+      "readiness_note": "Done on 2026-04-29: report CSV export is backed by Fastify routes for workload, leave summary, substitute history, and coverage operations; the browser downloads CSV with UTF-8 BOM preserved for Excel compatibility.",
+      "evidence": [
+        "output/val-006-workload.csv",
+        "output/val-006-browser-evidence.json"
       ]
     },
     {
       "id": "INTEGRATION-008",
       "type": "integration",
       "title": "Reports End-to-End",
-      "status": "draft",
+      "status": "done",
       "priority": "medium",
       "parent": "WAVE-007",
       "deps": [
@@ -6627,7 +6687,20 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "CSV export works",
           "No cross-tenant data"
         ],
-        "implementation": "Wire and verify the dependent tasks as one user-visible/system behavior; run affected integration checks."
+        "implementation": "Wire and verify the dependent tasks as one user-visible/system behavior; run affected integration checks.",
+        "implementation_result": "Done on 2026-04-29: WAVE-007 report APIs, UI cards, CSV export, admin permission checks, report fixtures, and PostgreSQL-backed validation now converge end-to-end.",
+        "validation": {
+          "result": "pass",
+          "date": "2026-04-29",
+          "commands": [
+            "npm test --workspace @prototype-schoolroster/web",
+            "npm test --workspace @prototype-schoolroster/api",
+            "npm run typecheck",
+            "npm run build",
+            "npm run test:api:pglocal",
+            "npm run lint"
+          ]
+        }
       },
       "contract": {
         "objective": "Converge dependency outputs into the approved behavior: Reports End-to-End.",
@@ -6696,7 +6769,11 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "apps/web/src/features/rostering/**",
           "packages/contracts/src/rostering.ts"
         ]
-      }
+      },
+      "readiness_note": "Done on 2026-04-29: WAVE-007 report APIs, UI cards, CSV export, admin permission checks, report fixtures, and PostgreSQL-backed validation now converge end-to-end.",
+      "evidence": [
+        "output/val-006-browser-evidence.json"
+      ]
     },
     {
       "id": "TASK-039",
@@ -8141,7 +8218,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
       "id": "VAL-006",
       "type": "validation",
       "title": "E2E: Reports and export",
-      "status": "draft",
+      "status": "done",
       "priority": "medium",
       "parent": "WAVE-007",
       "deps": [
@@ -8164,7 +8241,20 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "Downloads CSV",
           "File contents correct"
         ],
-        "implementation": "Run the validation described by this item using seeded MVP data and inspect the listed acceptance proof."
+        "implementation": "Run the validation described by this item using seeded MVP data and inspect the listed acceptance proof.",
+        "implementation_result": "Done on 2026-04-29: Playwright CLI browser validation loaded the Reports panel against the pglocal-backed API, verified report data in-browser, downloaded workload.csv, and confirmed UTF-8 BOM bytes.",
+        "validation": {
+          "result": "pass",
+          "date": "2026-04-29",
+          "commands": [
+            "npm test --workspace @prototype-schoolroster/web",
+            "npm test --workspace @prototype-schoolroster/api",
+            "npm run typecheck",
+            "npm run build",
+            "npm run test:api:pglocal",
+            "npm run lint"
+          ]
+        }
       },
       "contract": {
         "objective": "Validate accepted behavior for E2E: Reports and export.",
@@ -8243,6 +8333,12 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "JOURNEY-004",
         "SCREEN-006",
         "LAUNCH-003"
+      ],
+      "readiness_note": "Done on 2026-04-29: Playwright CLI browser validation loaded the Reports panel against the pglocal-backed API, verified report data in-browser, downloaded workload.csv, and confirmed UTF-8 BOM bytes.",
+      "evidence": [
+        "output/val-006-browser-evidence.json",
+        "output/playwright/val-006-reports-export.png",
+        "output/val-006-workload.csv"
       ]
     },
     {
@@ -9482,7 +9578,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
       "id": "TASK-051",
       "type": "task",
       "title": "Build coverage operations report",
-      "status": "draft",
+      "status": "done",
       "priority": "medium",
       "parent": "WAVE-007",
       "deps": [
@@ -9511,7 +9607,20 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "Cancellation/reassignment counts calculated",
           "Time-to-fill calculated",
           "CSV/export path considered"
-        ]
+        ],
+        "implementation_result": "Done on 2026-04-29: coverage operations report API/UI calculates fill rate, required/unfilled/no-coverage impacts, canceled assignments, reassignment count, and average time-to-fill from persisted leave impacts and assignment lifecycle records.",
+        "validation": {
+          "result": "pass",
+          "date": "2026-04-29",
+          "commands": [
+            "npm test --workspace @prototype-schoolroster/web",
+            "npm test --workspace @prototype-schoolroster/api",
+            "npm run typecheck",
+            "npm run build",
+            "npm run test:api:pglocal",
+            "npm run lint"
+          ]
+        }
       },
       "contract": {
         "objective": "Implement FR-031 coverage operations reporting.",
@@ -9600,6 +9709,10 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "SCREEN-006",
         "ENTITY-006",
         "API-028"
+      ],
+      "readiness_note": "Done on 2026-04-29: coverage operations report API/UI calculates fill rate, required/unfilled/no-coverage impacts, canceled assignments, reassignment count, and average time-to-fill from persisted leave impacts and assignment lifecycle records.",
+      "evidence": [
+        "apps/api/tests/rostering/reports/report-service.test.ts"
       ]
     },
     {
@@ -10147,7 +10260,7 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
       "id": "VAL-013",
       "type": "validation",
       "title": "Integration: Coverage operations report",
-      "status": "draft",
+      "status": "done",
       "priority": "medium",
       "parent": "WAVE-007",
       "deps": [
@@ -10171,7 +10284,20 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "Unfilled count matches fixtures",
           "Cancellation/reassignment counts match",
           "Time-to-fill matches"
-        ]
+        ],
+        "implementation_result": "Done on 2026-04-29: integration fixtures validate coverage operations fill rate, unfilled count, cancellation count, reassignment count, and average time-to-fill, including pglocal PostgreSQL test coverage.",
+        "validation": {
+          "result": "pass",
+          "date": "2026-04-29",
+          "commands": [
+            "npm test --workspace @prototype-schoolroster/web",
+            "npm test --workspace @prototype-schoolroster/api",
+            "npm run typecheck",
+            "npm run build",
+            "npm run test:api:pglocal",
+            "npm run lint"
+          ]
+        }
       },
       "contract": {
         "objective": "Validate accepted behavior for Integration: Coverage operations report.",
@@ -10248,6 +10374,10 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "JOURNEY-004",
         "SCREEN-006",
         "LAUNCH-009"
+      ],
+      "readiness_note": "Done on 2026-04-29: integration fixtures validate coverage operations fill rate, unfilled count, cancellation count, reassignment count, and average time-to-fill, including pglocal PostgreSQL test coverage.",
+      "evidence": [
+        "apps/api/tests/rostering/reports/report-service.test.ts"
       ]
     },
     {

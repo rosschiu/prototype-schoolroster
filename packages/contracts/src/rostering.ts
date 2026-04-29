@@ -340,6 +340,79 @@ export type PatchSubstituteAvailabilityRequest = {
   }>;
 };
 
+export type WorkloadReportRow = {
+  teacherId: string;
+  regularSessionCount: number;
+  substituteDutyCount: number;
+  totalWorkloadCount: number;
+};
+
+export type WorkloadReport = {
+  schoolId: string;
+  termId: string;
+  rows: WorkloadReportRow[];
+};
+
+export type LeaveSummaryReportRow = {
+  teacherId: string;
+  leaveType: string;
+  durationType: LeaveDurationType;
+  requestCount: number;
+  coverageImpactCount: number;
+};
+
+export type LeaveSummaryReport = {
+  schoolId: string;
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  rows: LeaveSummaryReportRow[];
+};
+
+export type SubstituteHistoryReportRow = {
+  assignmentId: string;
+  leaveRequestId: string;
+  classSessionId: string;
+  originalTeacherId: string;
+  substituteTeacherId: string;
+  status: SubstituteAssignmentStatus;
+  assignedAt: string;
+  acceptedAt?: string;
+  declinedAt?: string;
+  completedAt?: string;
+  canceledAt?: string;
+  cancellationReason?: string;
+  leaveType?: string;
+  leaveStartDate?: string;
+  leaveEndDate?: string;
+};
+
+export type SubstituteHistoryReport = {
+  schoolId: string;
+  termId?: string;
+  teacherId?: string;
+  startDate?: string;
+  endDate?: string;
+  rows: SubstituteHistoryReportRow[];
+};
+
+export type CoverageOperationsReport = {
+  schoolId: string;
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  totalRequiredImpacts: number;
+  filledImpactCount: number;
+  unfilledImpactCount: number;
+  noCoverageNeededCount: number;
+  canceledAssignmentCount: number;
+  reassignmentCount: number;
+  averageTimeToFillHours: number | null;
+  fillRate: number;
+};
+
+export type ReportExportType = 'workload' | 'leave-summary' | 'substitute-history' | 'coverage-operations';
+
 export type RosterAuditLogEntry = {
   id: string;
   schoolId: string;

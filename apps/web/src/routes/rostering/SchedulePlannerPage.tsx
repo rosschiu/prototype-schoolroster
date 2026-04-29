@@ -12,6 +12,8 @@ import { LeaveWorkspace } from '../../features/rostering/leave/LeaveWorkspace.js
 import { createRosterLeaveApi, type LeaveApi } from '../../features/rostering/leave/leaveApi.js';
 import { PreferenceRulesPanel } from '../../features/rostering/rules/PreferenceRulesPanel.js';
 import { createRosterPreferenceRulesApi, type PreferenceRulesApi } from '../../features/rostering/rules/preferenceRulesApi.js';
+import { ReportsPanel } from '../../features/rostering/reports/ReportsPanel.js';
+import { createRosterReportsApi, type ReportsApi } from '../../features/rostering/reports/reportsApi.js';
 import { ProjectionViews } from '../../features/rostering/schedule/ProjectionViews.js';
 import { PublishPanel } from '../../features/rostering/schedule/PublishPanel.js';
 import { ScheduleGrid } from '../../features/rostering/schedule/ScheduleGrid.js';
@@ -33,7 +35,8 @@ export function SchedulePlannerPage({
   substituteRecommendationApi,
   substituteAssignmentsApi,
   coverageApi,
-  coverageLifecycleApi
+  coverageLifecycleApi,
+  reportsApi
 }: {
   api?: SchedulePlannerApi;
   leaveApi?: LeaveApi | null;
@@ -44,6 +47,7 @@ export function SchedulePlannerPage({
   substituteAssignmentsApi?: SubstituteAssignmentsApi | null;
   coverageApi?: CoverageApi | null;
   coverageLifecycleApi?: CoverageLifecycleApi | null;
+  reportsApi?: ReportsApi | null;
 }) {
   const [state, setState] = useState<SchedulePlannerState>(() => createInitialPlannerState());
   const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
@@ -80,6 +84,10 @@ export function SchedulePlannerPage({
   const coverageLifecycleApiClient = useMemo(
     () => (coverageLifecycleApi === undefined ? createRosterCoverageLifecycleApi() : coverageLifecycleApi),
     [coverageLifecycleApi]
+  );
+  const reportsApiClient = useMemo(
+    () => (reportsApi === undefined ? createRosterReportsApi() : reportsApi),
+    [reportsApi]
   );
 
   async function runPlannerAction(label: string, action: () => Promise<void>) {
@@ -145,6 +153,7 @@ export function SchedulePlannerPage({
             <a className="shell-nav-link" href="#rules"><span>C</span>Rules</a>
             <a className="shell-nav-link" href="#preferences"><span>X</span>Preferences</a>
             <a className="shell-nav-link" href="#projections"><span>P</span>Projections</a>
+            <a className="shell-nav-link" href="#reports"><span>R</span>Reports</a>
             <a className="shell-nav-link" href="#"><span>U</span>Users</a>
             <a className="shell-nav-link" href="#"><span>S</span>Settings</a>
           </nav>
@@ -260,6 +269,10 @@ export function SchedulePlannerPage({
             periods={state.periods}
             teachers={state.teachers}
             rooms={state.rooms}
+          />
+          <ReportsPanel
+            api={reportsApiClient ?? undefined}
+            teachers={state.teachers}
           />
         </div>
       </div>

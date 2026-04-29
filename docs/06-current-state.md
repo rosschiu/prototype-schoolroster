@@ -13,11 +13,11 @@
 Provide the fastest possible operational snapshot for humans and agents.
 
 ## Current Snapshot [AIH]
-- Current milestone or phase: Phase 3 (Build) — WAVE-007 audit, reports, and export
+- Current milestone or phase: Phase 3 (Build) — WAVE-008 Steck integration and merge planning
 - Delivery mode: MVP
-- Current top priority: Continue WAVE-007 reports (`TASK-035`, `TASK-036`, `TASK-037`)
+- Current top priority: Confirm/open WAVE-008 Steck integration and merge tasks (`TASK-039` through `TASK-044`) or decide whether to run launch/security validations first.
 - Current top risk: Local development now depends on the existing Docker Postgres 18 container `pglocal`; agents should verify it is running before browser/API validation
-- Current blocker if any: None; `TASK-035`, `TASK-036`, and `TASK-037` are ready
+- Current blocker if any: WAVE-008 tasks remain draft and need human confirmation before implementation that touches Steck merge/integration boundaries.
 
 ## Workflow Readiness [AIH]
 - App definition (`00`): READY — human approved with full-day + AM/PM half-day leave and updated recommendation SLA
@@ -38,7 +38,7 @@ Readiness meaning:
 ## Current Coding Blockers [AIH]
 - Blocking human decision: None; human approved updating docs/board for real PostgreSQL and strict Steck schema compatibility.
 - Missing or not-ready source doc: None for source docs `00`-`04`; source docs are approved enough for implementation.
-- Task-board issue preventing implementation: None for `TASK-035`, `TASK-036`, or `TASK-037`; WAVE-007 audit foundation is complete.
+- Task-board issue preventing implementation: WAVE-007 is complete; WAVE-008 Steck integration items are still draft, so implementation should pause at planning/review unless the human opens those tasks.
 
 Coding may start only when:
 - source docs required by scope are `READY`
@@ -91,6 +91,9 @@ Coding may start only when:
 - Capability: `TASK-033` roster audit query service is complete: admins can query Steck-compatible audit events through `/api/roster/audit` with school, actor, event, object, date, and limit filters; teachers are denied; in-memory and PostgreSQL-backed routes are covered, including `pglocal` validation.
 - Capability: `TASK-034` audit write completeness is complete: class session create/update/delete now write audit events, and existing timetable publish, leave lifecycle, substitute lifecycle, rule config, preference, and availability mutations are covered by the shared audit/query path.
 - Capability: `VAL-015` browser validation is complete: Playwright against Vite + pglocal API with delayed status polling proved recommendation running/progress UI, retry, manual assignment fallback, mark-unfilled fallback, and completed ranked candidates. Evidence is in `output/val-015-browser-evidence.json` and `output/playwright/val-015-recommendation-status.png`.
+- Capability: WAVE-007 reports and export are complete: workload, leave summary, substitute history, and coverage operations reports are available through PostgreSQL-backed APIs and the browser Reports panel.
+- Capability: CSV report export is complete: workload, leave summary, substitute history, and coverage operations export routes return CSV; browser downloads preserve the UTF-8 BOM for Excel compatibility, with evidence in `output/val-006-browser-evidence.json` and `output/val-006-workload.csv`.
+- Capability: `VAL-013` coverage operations validation is complete: deterministic integration fixtures prove fill rate, required/unfilled impacts, cancellation count, reassignment count, and average time-to-fill calculations, including pglocal validation.
 
 ## What Is In Progress [AIH]
 - Item: PostgreSQL and Steck schema alignment
@@ -102,17 +105,20 @@ Coding may start only when:
 - Item: WAVE-006 substitute assignment UI
   - Status: WAVE-006 is done; `TASK-027`, `TASK-028`, `TASK-029`, `TASK-030`, `TASK-031`, `TASK-047`, `TASK-048`, `INTEGRATION-007`, `VAL-005`, `VAL-012`, and `VAL-015` are done.
   - Risk or blocker: None for WAVE-006; next work is WAVE-007 once opened from draft.
+- Item: WAVE-007 audit, reports, and export
+  - Status: WAVE-007 is done; `TASK-033`, `TASK-034`, `TASK-035`, `TASK-036`, `TASK-037`, `TASK-038`, `TASK-051`, `INTEGRATION-008`, `VAL-006`, and `VAL-013` are done.
+  - Risk or blocker: None for WAVE-007.
 
 ## What Is Next [AIH]
-1. Execute report tasks: `TASK-035` workload report, `TASK-036` leave summary report, and `TASK-037` substitute history report.
-2. Then wire coverage operations report and CSV export before `INTEGRATION-008`.
+1. Confirm/open WAVE-008 Steck integration and merge tasks, starting with `TASK-039` shared contracts and `TASK-043` merge plan documentation.
+2. Decide whether remaining validation items (`VAL-002`, `VAL-008`, `VAL-009`, `VAL-010`) should be opened before or after Steck merge adapter work.
 3. Keep using `pglocal` for DB-backed validation unless a project-specific database replaces it.
 
 ## Known Gaps and Bugs [AIH]
 - Gap: Later board items remain draft until dependencies and wave sequence are satisfied.
 - Gap: Permanent/shared environment configuration is still not formalized; local validation currently uses existing Docker Postgres 18 `pglocal`.
 - Gap: Steck merge path is conceptual; concrete file mapping and migration plan need to be created as tasks.
-- Gap: Recommendation API, availability filtering, durable job status, teacher availability UI, rule/preference config UI, recommendation run-status UX, score breakdown UI, manual override search, offered assignment creation, teacher accept/decline, unfilled coverage queue, and reassignment/cancellation/completion flows exist and have API convergence coverage; WAVE-006 now has `VAL-005`, `VAL-012`, and `VAL-015` browser validation evidence; downstream audit/report/export work is now open with audit foundation complete and first report tasks ready.
+- Gap: Recommendation, leave, substitute assignment, audit, report, coverage operations, and CSV export flows now have API/component/pglocal coverage plus selected browser evidence; remaining gaps are launch/security/accessibility validation and Steck merge adapter work.
 - Gap: Algorithm details may receive further human feedback during browser/testing review; current spec is accepted for planning.
 - Gap: Human may still review/refine algorithm details during browser/testing feedback, but source docs are accepted for planning.
 
@@ -327,3 +333,6 @@ Coding may start only when:
 - Date: 2026-04-29
 - Change: Completed `TASK-034` audit write coverage for class session mutations and verified full local plus Postgres 18 `pglocal` quality gates.
 - Why it mattered: Schedule session amendments now join leave, substitute, rules, and availability mutations in the admin-queryable audit trail, unblocking report work.
+- Date: 2026-04-29
+- Change: Completed WAVE-007 reports, coverage operations, CSV export, and validations.
+- Why it mattered: Admins now have PostgreSQL-backed workload, leave summary, substitute history, and coverage operations reports in the browser, CSV downloads preserve Excel-compatible UTF-8 BOM bytes, and API/component/browser/pglocal evidence proves the reporting workflow before Steck merge planning.

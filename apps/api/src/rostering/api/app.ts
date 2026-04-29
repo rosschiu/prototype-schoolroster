@@ -12,7 +12,8 @@ import type {
   CreateSubstituteAssignmentRequest,
   ReassignSubstituteAssignmentRequest,
   UpdateSubstituteAssignmentStatusRequest,
-  UpdateClassSessionRequest
+  UpdateClassSessionRequest,
+  ReportExportType
 } from '../../../../../packages/contracts/src/rostering.js';
 import {
   createRosterAuditService,
@@ -44,6 +45,7 @@ import { createLeaveService, InMemoryLeaveRepository, PostgresLeaveRepository, t
 import { createNotificationService, InMemoryNotificationRepository, PostgresNotificationRepository, type NotificationRepository } from '../notifications/notification-service.js';
 import { createResourceService, InMemoryResourceRepository } from '../resources/resource-service.js';
 import { PostgresResourceRepository, type ResourceRepository } from '../resources/resource-service.js';
+import { createRosterReportService, type ReportQuery } from '../reports/report-service.js';
 import { createPreferenceRuleService, InMemoryPreferenceRuleRepository, PostgresPreferenceRuleRepository, type PreferenceRuleRepository } from '../rules/preference-rule-service.js';
 import {
   createSubstituteAssignmentService,
@@ -387,6 +389,23 @@ function normalizeAuditQuery(query: Record<string, unknown>): RosterAuditQuery {
   };
 }
 
+function normalizeReportQuery(query: Record<string, unknown>, options: { requireTerm?: boolean } = {}): ReportQuery & { termId?: string } {
+  const termId = hasText(query.termId) ? query.termId : undefined;
+  if (options.requireTerm && !termId) throw new TimetableValidationError('termId is required.');
+  return {
+    schoolId: requireText(query.schoolId, 'schoolId'),
+    termId,
+    teacherId: hasText(query.teacherId) ? query.teacherId : undefined,
+    startDate: hasText(query.startDate) ? query.startDate : undefined,
+    endDate: hasText(query.endDate) ? query.endDate : undefined
+  };
+}
+
+function normalizeReportType(value: string): ReportExportType {
+  if (value === 'workload' || value === 'leave-summary' || value === 'substitute-history' || value === 'coverage-operations') return value;
+  throw new TimetableValidationError('report type must be workload, leave-summary, substitute-history, or coverage-operations.');
+}
+
 async function getAuthenticatedSession({
   request,
   reply,
@@ -478,6 +497,11 @@ export function buildRosterApiApp(services: RosterApiServices): FastifyInstance 
   const coverageService = createCoverageService({
     leaveRepository,
     timetableRepository: services.timetableRepository
+  });
+  const reportService = createRosterReportService({
+    timetableRepository: services.timetableRepository,
+    leaveRepository,
+    substituteAssignmentRepository
   });
   const auditService = createRosterAuditService(
     services.auditRepository
@@ -970,6 +994,65 @@ export function buildRosterApiApp(services: RosterApiServices): FastifyInstance 
         session,
         query: normalizeAuditQuery(request.query as Record<string, unknown>)
       });
+    } catch (error) {
+      return handleRosterError(error, reply);
+    }
+  });
+
+  app.get('/api/roster/reports/workload', async (request, reply) => {
+    try {
+      const session = await getAuthenticatedSession({ request, reply, authService: services.authService });
+      if (!session) return authError(reply);
+      const query = normalizeReportQuery(request.query as Record<string, unknown>, { requireTerm: true });
+      return { report: await reportService.workload({ session, query: query as ReportQuery & { termId: string } }) };
+    } catch (error) {
+      return handleRosterError(error, reply);
+    }
+  });
+
+  app.get('/api/roster/reports/leave-summary', async (request, reply) => {
+    try {
+      const session = await getAuthenticatedSession({ request, reply, authService: services.authService });
+      if (!session) return authError(reply);
+      return { report: await reportService.leaveSummary({ session, query: normalizeReportQuery(request.query as Record<string, unknown>) }) };
+    } catch (error) {
+      return handleRosterError(error, reply);
+    }
+  });
+
+  app.get('/api/roster/reports/substitute-history', async (request, reply) => {
+    try {
+      const session = await getAuthenticatedSession({ request, reply, authService: services.authService });
+      if (!session) return authError(reply);
+      return { report: await reportService.substituteHistory({ session, query: normalizeReportQuery(request.query as Record<string, unknown>) }) };
+    } catch (error) {
+      return handleRosterError(error, reply);
+    }
+  });
+
+  app.get('/api/roster/reports/coverage-operations', async (request, reply) => {
+    try {
+      const session = await getAuthenticatedSession({ request, reply, authService: services.authService });
+      if (!session) return authError(reply);
+      return { report: await reportService.coverageOperations({ session, query: normalizeReportQuery(request.query as Record<string, unknown>) }) };
+    } catch (error) {
+      return handleRosterError(error, reply);
+    }
+  });
+
+  app.get('/api/roster/reports/:type/export', async (request, reply) => {
+    try {
+      const session = await getAuthenticatedSession({ request, reply, authService: services.authService });
+      if (!session) return authError(reply);
+      const type = normalizeReportType((request.params as { type: string }).type);
+      const csv = await reportService.exportCsv({
+        session,
+        type,
+        query: normalizeReportQuery(request.query as Record<string, unknown>, { requireTerm: type === 'workload' })
+      });
+      reply.header('content-type', 'text/csv; charset=utf-8');
+      reply.header('content-disposition', `attachment; filename=\"${type}.csv\"`);
+      return csv;
     } catch (error) {
       return handleRosterError(error, reply);
     }
