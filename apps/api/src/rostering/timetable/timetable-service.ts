@@ -4,7 +4,8 @@ import type {
   Timetable,
   TimetablePeriod,
   TimetablePeriodHalfDay,
-  TimetableStatus
+  TimetableStatus,
+  UpdateTimetablePeriodInput
 } from '../../../../../packages/contracts/src/rostering.js';
 import type { PostgresDatabase } from '../../db/postgres.js';
 import type { AuthenticatedRosterSession } from '../auth/auth-service.js';
@@ -30,6 +31,7 @@ export type TimetableTemplatePeriod = {
   startTime: string;
   endTime: string;
   halfDay: TimetablePeriodHalfDay;
+  isTeachingPeriod?: boolean;
 };
 
 export type TimetableTemplate = {
@@ -77,6 +79,7 @@ export type TimetableRepository = {
   findTimetableBySchoolTermName(schoolId: string, termId: string, name: string): Promise<Timetable | null>;
   listTimetables(schoolId: string, termId: string): Promise<Timetable[]>;
   createPeriods(periods: TimetablePeriod[]): Promise<TimetablePeriod[]>;
+  replacePeriods(timetableId: string, periods: TimetablePeriod[]): Promise<TimetablePeriod[]>;
   listPeriods(timetableId: string): Promise<TimetablePeriod[]>;
   createClassSession(session: ClassSession): Promise<ClassSession>;
   updateClassSession(session: ClassSession): Promise<ClassSession>;
@@ -167,8 +170,98 @@ export function buildDefaultPeriods({
     startTime: period.startTime,
     endTime: period.endTime,
     halfDay: period.halfDay,
-    sortOrder: index + 1
+    sortOrder: index + 1,
+    isTeachingPeriod: period.isTeachingPeriod ?? true
   }));
+}
+
+function timeToMinutes(value: string): number {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
+  if (!match) {
+    throw new TimetableValidationError('Period times must use HH:MM 24-hour format.');
+  }
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function normalizePeriodInput({
+  timetable,
+  input,
+  index
+}: {
+  timetable: Timetable;
+  input: UpdateTimetablePeriodInput;
+  index: number;
+}): TimetablePeriod {
+  const label = input.label.trim();
+  if (!label) {
+    throw new TimetableValidationError('Period label is required.');
+  }
+  if (input.dayIndex < 1 || input.dayIndex > 7 || !Number.isInteger(input.dayIndex)) {
+    throw new TimetableValidationError('dayIndex must be an integer between 1 and 7.');
+  }
+  if (input.periodIndex < 1 || !Number.isInteger(input.periodIndex)) {
+    throw new TimetableValidationError('periodIndex must be a positive integer.');
+  }
+  if (input.halfDay !== 'am' && input.halfDay !== 'pm') {
+    throw new TimetableValidationError('halfDay must be am or pm.');
+  }
+  if (timeToMinutes(input.startTime) >= timeToMinutes(input.endTime)) {
+    throw new TimetableValidationError('Period start time must be before end time.');
+  }
+
+  return {
+    id: input.id?.trim() || randomUUID(),
+    timetableId: timetable.id,
+    schoolId: timetable.schoolId,
+    dayIndex: input.dayIndex,
+    periodIndex: input.periodIndex,
+    label,
+    startTime: input.startTime.trim(),
+    endTime: input.endTime.trim(),
+    halfDay: input.halfDay,
+    sortOrder: input.sortOrder ?? index + 1,
+    isTeachingPeriod: input.isTeachingPeriod ?? true
+  };
+}
+
+function validatePeriodSet(periods: TimetablePeriod[]): void {
+  if (periods.length === 0) {
+    throw new TimetableValidationError('At least one timetable period is required.');
+  }
+  const teachingPeriods = periods.filter((period) => period.isTeachingPeriod);
+  if (teachingPeriods.length === 0) {
+    throw new TimetableValidationError('At least one teaching period is required.');
+  }
+  if (!teachingPeriods.some((period) => period.halfDay === 'am') || !teachingPeriods.some((period) => period.halfDay === 'pm')) {
+    throw new TimetableValidationError('Teaching periods must include at least one AM and one PM period.');
+  }
+
+  const byDayAndIndex = new Set<string>();
+  const bySortOrder = new Set<number>();
+  for (const period of periods) {
+    const periodKey = `${period.dayIndex}:${period.periodIndex}`;
+    if (byDayAndIndex.has(periodKey)) {
+      throw new TimetableValidationError('Each day/period combination must be unique.');
+    }
+    byDayAndIndex.add(periodKey);
+    if (bySortOrder.has(period.sortOrder)) {
+      throw new TimetableValidationError('Each period sortOrder must be unique.');
+    }
+    bySortOrder.add(period.sortOrder);
+  }
+
+  const periodsByDay = new Map<number, TimetablePeriod[]>();
+  for (const period of periods) {
+    periodsByDay.set(period.dayIndex, [...(periodsByDay.get(period.dayIndex) ?? []), period]);
+  }
+  for (const dayPeriods of periodsByDay.values()) {
+    const sorted = [...dayPeriods].sort((left, right) => timeToMinutes(left.startTime) - timeToMinutes(right.startTime));
+    for (let index = 1; index < sorted.length; index += 1) {
+      if (timeToMinutes(sorted[index - 1].endTime) > timeToMinutes(sorted[index].startTime)) {
+        throw new TimetableValidationError('Periods cannot overlap within the same day.');
+      }
+    }
+  }
 }
 
 export class InMemoryTimetableRepository implements TimetableRepository {
@@ -204,6 +297,13 @@ export class InMemoryTimetableRepository implements TimetableRepository {
       this.periods.set(period.id, period);
     }
     return periods;
+  }
+
+  async replacePeriods(timetableId: string, periods: TimetablePeriod[]): Promise<TimetablePeriod[]> {
+    for (const period of [...this.periods.values()].filter((item) => item.timetableId === timetableId)) {
+      this.periods.delete(period.id);
+    }
+    return this.createPeriods(periods);
   }
 
   async listPeriods(timetableId: string): Promise<TimetablePeriod[]> {
@@ -257,6 +357,7 @@ type TimetableRow = {
   created_at: Date;
   updated_at: Date;
   published_at: Date | null;
+  structure_confirmed_at: Date | null;
 };
 
 type TimetablePeriodRow = {
@@ -270,6 +371,7 @@ type TimetablePeriodRow = {
   end_time: string;
   half_day: TimetablePeriodHalfDay;
   sort_order: number;
+  is_teaching_period: boolean;
 };
 
 type ClassSessionRow = {
@@ -316,7 +418,8 @@ function toTimetable(row: TimetableRow): Timetable {
     timezone: row.timezone,
     createdAt: dateIso(row.created_at),
     updatedAt: dateIso(row.updated_at),
-    publishedAt: row.published_at ? dateIso(row.published_at) : undefined
+    publishedAt: row.published_at ? dateIso(row.published_at) : undefined,
+    structureConfirmedAt: row.structure_confirmed_at ? dateIso(row.structure_confirmed_at) : undefined
   };
 }
 
@@ -331,7 +434,8 @@ function toPeriod(row: TimetablePeriodRow): TimetablePeriod {
     startTime: timeText(row.start_time),
     endTime: timeText(row.end_time),
     halfDay: row.half_day,
-    sortOrder: row.sort_order
+    sortOrder: row.sort_order,
+    isTeachingPeriod: row.is_teaching_period
   };
 }
 
@@ -361,9 +465,9 @@ export class PostgresTimetableRepository implements TimetableRepository {
   async createTimetable(timetable: Timetable): Promise<Timetable> {
     await this.database.query(
       `insert into ${tableRef(this.schema, 'rostering_timetables')} (
-        id, school_id, term_id, name, status, template_key, timezone, created_at, updated_at, published_at
+          id, school_id, term_id, name, status, template_key, timezone, created_at, updated_at, published_at, structure_confirmed_at
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         timetable.id,
         timetable.schoolId,
@@ -374,7 +478,8 @@ export class PostgresTimetableRepository implements TimetableRepository {
         timetable.timezone,
         timetable.createdAt,
         timetable.updatedAt,
-        timetable.publishedAt ?? null
+        timetable.publishedAt ?? null,
+        timetable.structureConfirmedAt ?? null
       ]
     );
     return timetable;
@@ -388,7 +493,8 @@ export class PostgresTimetableRepository implements TimetableRepository {
            template_key = $4,
            timezone = $5,
            updated_at = $6,
-           published_at = $7
+           published_at = $7,
+           structure_confirmed_at = $8
        where id = $1`,
       [
         timetable.id,
@@ -397,7 +503,8 @@ export class PostgresTimetableRepository implements TimetableRepository {
         timetable.templateKey ?? null,
         timetable.timezone,
         timetable.updatedAt,
-        timetable.publishedAt ?? null
+        timetable.publishedAt ?? null,
+        timetable.structureConfirmedAt ?? null
       ]
     );
     return timetable;
@@ -405,7 +512,7 @@ export class PostgresTimetableRepository implements TimetableRepository {
 
   async getTimetable(id: string): Promise<Timetable | null> {
     const result = await this.database.query<TimetableRow>(
-      `select id, school_id, term_id, name, status, template_key, timezone, created_at, updated_at, published_at
+      `select id, school_id, term_id, name, status, template_key, timezone, created_at, updated_at, published_at, structure_confirmed_at
        from ${tableRef(this.schema, 'rostering_timetables')}
        where id = $1`,
       [id]
@@ -415,7 +522,7 @@ export class PostgresTimetableRepository implements TimetableRepository {
 
   async findTimetableBySchoolTermName(schoolId: string, termId: string, name: string): Promise<Timetable | null> {
     const result = await this.database.query<TimetableRow>(
-      `select id, school_id, term_id, name, status, template_key, timezone, created_at, updated_at, published_at
+      `select id, school_id, term_id, name, status, template_key, timezone, created_at, updated_at, published_at, structure_confirmed_at
        from ${tableRef(this.schema, 'rostering_timetables')}
        where school_id = $1 and term_id = $2 and name = $3`,
       [schoolId, termId, name]
@@ -425,7 +532,7 @@ export class PostgresTimetableRepository implements TimetableRepository {
 
   async listTimetables(schoolId: string, termId: string): Promise<Timetable[]> {
     const result = await this.database.query<TimetableRow>(
-      `select id, school_id, term_id, name, status, template_key, timezone, created_at, updated_at, published_at
+      `select id, school_id, term_id, name, status, template_key, timezone, created_at, updated_at, published_at, structure_confirmed_at
        from ${tableRef(this.schema, 'rostering_timetables')}
        where school_id = $1 and term_id = $2
        order by created_at, name`,
@@ -438,9 +545,9 @@ export class PostgresTimetableRepository implements TimetableRepository {
     for (const period of periods) {
       await this.database.query(
         `insert into ${tableRef(this.schema, 'rostering_timetable_periods')} (
-          id, timetable_id, school_id, day_index, period_index, label, start_time, end_time, half_day, sort_order
+          id, timetable_id, school_id, day_index, period_index, label, start_time, end_time, half_day, sort_order, is_teaching_period
         )
-        values ($1, $2, $3, $4, $5, $6, $7::time, $8::time, $9, $10)`,
+        values ($1, $2, $3, $4, $5, $6, $7::time, $8::time, $9, $10, $11)`,
         [
           period.id,
           period.timetableId,
@@ -451,16 +558,26 @@ export class PostgresTimetableRepository implements TimetableRepository {
           period.startTime,
           period.endTime,
           period.halfDay,
-          period.sortOrder
+          period.sortOrder,
+          period.isTeachingPeriod
         ]
       );
     }
     return periods;
   }
 
+  async replacePeriods(timetableId: string, periods: TimetablePeriod[]): Promise<TimetablePeriod[]> {
+    await this.database.query(
+      `delete from ${tableRef(this.schema, 'rostering_timetable_periods')}
+       where timetable_id = $1`,
+      [timetableId]
+    );
+    return this.createPeriods(periods);
+  }
+
   async listPeriods(timetableId: string): Promise<TimetablePeriod[]> {
     const result = await this.database.query<TimetablePeriodRow>(
-      `select id, timetable_id, school_id, day_index, period_index, label, start_time::text, end_time::text, half_day, sort_order
+      `select id, timetable_id, school_id, day_index, period_index, label, start_time::text, end_time::text, half_day, sort_order, is_teaching_period
        from ${tableRef(this.schema, 'rostering_timetable_periods')}
        where timetable_id = $1
        order by sort_order`,
@@ -672,6 +789,9 @@ export function createTimetableService(repository: TimetableRepository) {
       if (timetable.status === 'archived') {
         throw new TimetableValidationError('Archived timetables cannot be published.');
       }
+      if (!timetable.structureConfirmedAt) {
+        throw new TimetableValidationError('Confirm timetable structure before publishing.');
+      }
       const before = { ...timetable };
       const timestamp = nowIso();
       const updated: Timetable = {
@@ -698,6 +818,86 @@ export function createTimetableService(repository: TimetableRepository) {
         createdAt: timestamp
       });
       return updated;
+    },
+
+    async updatePeriods(input: {
+      session: AuthenticatedRosterSession;
+      timetableId: string;
+      periods: UpdateTimetablePeriodInput[];
+    }): Promise<{ timetable: Timetable; periods: TimetablePeriod[] }> {
+      const timetable = await repository.getTimetable(input.timetableId);
+      if (!timetable) {
+        throw new TimetableValidationError('Timetable was not found.');
+      }
+      assertAdmin(input.session, timetable.schoolId);
+      if (timetable.status !== 'draft') {
+        throw new TimetableValidationError('Only draft timetable structures can be amended.');
+      }
+      const sessions = await repository.listClassSessions(timetable.schoolId, timetable.termId);
+      if (sessions.some((session) => session.timetableId === timetable.id && session.status !== 'cancelled')) {
+        throw new TimetableValidationError('Timetable structure cannot be amended after class sessions exist.');
+      }
+
+      const normalizedPeriods = input.periods.map((period, index) => normalizePeriodInput({ timetable, input: period, index }));
+      validatePeriodSet(normalizedPeriods);
+      const beforePeriods = await repository.listPeriods(timetable.id);
+      const timestamp = nowIso();
+      const updatedTimetable: Timetable = {
+        ...timetable,
+        structureConfirmedAt: undefined,
+        updatedAt: timestamp
+      };
+      await repository.updateTimetable(updatedTimetable);
+      const updatedPeriods = await repository.replacePeriods(timetable.id, normalizedPeriods);
+      await repository.appendAudit({
+        id: randomUUID(),
+        schoolId: timetable.schoolId,
+        actorUserId: input.session.user.userId,
+        actorRole: input.session.activeRole,
+        action: 'timetable.periods.updated',
+        entityType: 'timetable',
+        entityId: timetable.id,
+        before: { timetable, periods: beforePeriods },
+        after: { timetable: updatedTimetable, periods: updatedPeriods },
+        createdAt: timestamp
+      });
+      return { timetable: updatedTimetable, periods: updatedPeriods };
+    },
+
+    async confirmStructure(input: {
+      session: AuthenticatedRosterSession;
+      timetableId: string;
+    }): Promise<{ timetable: Timetable; periods: TimetablePeriod[] }> {
+      const timetable = await repository.getTimetable(input.timetableId);
+      if (!timetable) {
+        throw new TimetableValidationError('Timetable was not found.');
+      }
+      assertAdmin(input.session, timetable.schoolId);
+      if (timetable.status !== 'draft') {
+        throw new TimetableValidationError('Only draft timetable structures can be confirmed.');
+      }
+      const periods = await repository.listPeriods(timetable.id);
+      validatePeriodSet(periods);
+      const timestamp = nowIso();
+      const updated: Timetable = {
+        ...timetable,
+        structureConfirmedAt: timestamp,
+        updatedAt: timestamp
+      };
+      await repository.updateTimetable(updated);
+      await repository.appendAudit({
+        id: randomUUID(),
+        schoolId: updated.schoolId,
+        actorUserId: input.session.user.userId,
+        actorRole: input.session.activeRole,
+        action: 'timetable.structure.confirmed',
+        entityType: 'timetable',
+        entityId: updated.id,
+        before: timetable,
+        after: updated,
+        createdAt: timestamp
+      });
+      return { timetable: updated, periods };
     },
 
     async createClassSession(input: {

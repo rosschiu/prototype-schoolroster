@@ -58,6 +58,17 @@ export function SessionForm({
     );
   }
 
+  if (!timetable.structureConfirmedAt) {
+    return (
+      <section className="side-panel empty-panel" aria-label="Session form">
+        <h2>Add session</h2>
+        <p>Confirm the timetable structure before adding class sessions.</p>
+      </section>
+    );
+  }
+
+  const teachingPeriods = periods.filter((period) => period.isTeachingPeriod);
+
   return (
     <form
       className="side-panel"
@@ -100,7 +111,7 @@ export function SessionForm({
           onChange={(event) => setDraft((current) => ({ ...current, timetablePeriodId: event.target.value }))}
         >
           <option value="">Choose period</option>
-          {periods.map((period) => (
+          {teachingPeriods.map((period) => (
             <option key={period.id} value={period.id}>
               Day {period.dayIndex} {period.label} ({period.halfDay.toUpperCase()}) {period.startTime}-{period.endTime}
             </option>

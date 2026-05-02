@@ -122,8 +122,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
 {
   "meta": {
     "project": "Steck Teacher Rostering Module",
-    "updated": "2026-04-29",
-    "focus": "WAVE-007 report foundation complete; next ready tasks are TASK-051 coverage operations report and TASK-038 CSV export.",
+    "updated": "2026-05-02",
+    "focus": "Corrective WAVE-002 editable timetable setup is complete; next step is live browser/PostgreSQL validation, then WAVE-008 Steck integration planning.",
     "approval": {
       "status": "approved",
       "approved_by": "human",
@@ -12525,6 +12525,157 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         },
         "test_summary": "API tests passed 54/54 with DATABASE_URL set against pglocal; restart smoke confirmed persisted timetable, session, leave request, and leave impacts after API restart."
       }
+    },
+    {
+      "id": "TASK-065",
+      "type": "task",
+      "title": "Correct editable timetable setup before scheduling",
+      "status": "done",
+      "priority": "high",
+      "parent": "WAVE-002",
+      "deps": [
+        "TASK-003",
+        "TASK-006"
+      ],
+      "summary": "Fix the schedule-planner flow so the 5-day default opens editable period setup and requires admin confirmation before browser class scheduling or publish.",
+      "owner": "",
+      "docs": [
+        "docs/01-product-and-ux.md",
+        "docs/02-system-design.md",
+        "docs/06-current-state.md",
+        "docs/07-decision-log.md"
+      ],
+      "tags": [
+        "schedule",
+        "ux",
+        "api",
+        "postgres",
+        "corrective"
+      ],
+      "detail": {
+        "goal": "School admins can start from a sensible timetable default, amend period labels/times/AM-PM/teaching blocks, and confirm structure before creating sessions.",
+        "implementation": "Add structure confirmation to timetable contracts, migration metadata, service validation, API routes, UI setup panel, session lock, publish guard, and tests.",
+        "acceptance": [
+          "Default timetable creates editable periods without auto-confirming structure",
+          "Admin can save period label/time/AM-PM/teaching changes",
+          "Browser class session entry and publish are blocked until structure confirmation",
+          "Non-teaching periods are visible but excluded from class-session period choices",
+          "PostgreSQL-backed routes persist structure confirmation and audit changes"
+        ]
+      },
+      "contract": {
+        "objective": "Implement the approved corrective timetable setup flow.",
+        "user_value": "Prevents non-technical admins from being forced into scheduling before confirming the school day structure.",
+        "context_summary": "Human approved the correction after finding that Start from 5-day default skipped necessary period configuration.",
+        "owned_paths": [
+          "packages/contracts/src/rostering.ts",
+          "apps/api/src/rostering/timetable/**",
+          "apps/api/src/rostering/api/app.ts",
+          "apps/api/src/rostering/db/migrations.ts",
+          "apps/web/src/features/rostering/schedule/**",
+          "apps/web/src/routes/rostering/SchedulePlannerPage.tsx",
+          "apps/web/src/styles.css",
+          "apps/api/tests/rostering/**",
+          "apps/web/tests/rostering/schedule-planner.test.tsx",
+          "docs/**",
+          "project/index.html"
+        ],
+        "allowed_touch_points": [
+          "Schedule/timetable contracts, services, routes, UI, tests, and source-truth docs only"
+        ],
+        "integration_surface": {
+          "prerequisites": [
+            "TASK-003",
+            "TASK-006"
+          ],
+          "artifacts": [
+            "code changes",
+            "test command output",
+            "board/current-state updates"
+          ],
+          "source_ids": [
+            "FR-001",
+            "JOURNEY-001",
+            "SCREEN-001",
+            "ENTITY-001",
+            "ENTITY-002",
+            "API-032",
+            "API-033",
+            "DEC-016"
+          ]
+        },
+        "input_contract": [
+          "Human-approved plan for editable timetable setup after Start from 5-day default"
+        ],
+        "output_contract": [
+          "Backend, frontend, tests, docs, and board updated for the corrected flow"
+        ],
+        "implementation_steps": [
+          "Add timetable period update and confirmation contracts.",
+          "Add service validation and publish guard.",
+          "Add API routes and migration metadata.",
+          "Add setup panel and lock session entry until confirmation.",
+          "Update tests/docs/board and run validation."
+        ],
+        "quality_gate": [
+          "npm run typecheck",
+          "npm test --workspace @prototype-schoolroster/api",
+          "npm test --workspace @prototype-schoolroster/web"
+        ],
+        "acceptance": [
+          "Corrected user flow works in tests",
+          "No source-truth docs contradict the implementation",
+          "No unrelated scope added"
+        ],
+        "handoff": [
+          "Record commands run",
+          "Record residual risks"
+        ]
+      },
+      "parallel": {
+        "parallel_safe": false,
+        "parallel_group": "WAVE-002",
+        "conflict_paths": [
+          "apps/api/src/rostering/timetable/**",
+          "apps/web/src/features/rostering/schedule/**"
+        ]
+      },
+      "linked_source": [
+        "FR-001",
+        "API-032",
+        "API-033",
+        "DEC-016"
+      ],
+      "updated": "2026-05-02",
+      "readiness_note": "Done on 2026-05-02 after human approval of the corrective timetable setup plan.",
+      "completed_at": "2026-05-02",
+      "handoff_evidence": {
+        "status": "done",
+        "implementation_result": "Implemented editable timetable setup with structure confirmation, period update API, publish guard, browser session editor lock, non-teaching period handling, audits, and PostgreSQL migration metadata.",
+        "files_changed": [
+          "packages/contracts/src/rostering.ts",
+          "apps/api/src/rostering/api/app.ts",
+          "apps/api/src/rostering/db/migrations.ts",
+          "apps/api/src/rostering/timetable/session-service.ts",
+          "apps/api/src/rostering/timetable/timetable-service.ts",
+          "apps/web/src/features/rostering/schedule/TimetableSetupPanel.tsx",
+          "apps/web/src/features/rostering/schedule/ScheduleGrid.tsx",
+          "apps/web/src/features/rostering/schedule/SessionForm.tsx",
+          "apps/web/src/features/rostering/schedule/schedulePlannerApi.ts",
+          "apps/web/src/routes/rostering/SchedulePlannerPage.tsx",
+          "apps/web/src/styles.css"
+        ],
+        "tests": [
+          "npm run typecheck",
+          "npm test --workspace @prototype-schoolroster/api",
+          "npm test --workspace @prototype-schoolroster/web",
+          "npm run build",
+          "npm run lint",
+          "npm run test:api:pglocal",
+          "npm run validate:pglocal"
+        ],
+        "residual_risk": "Bulk import/copy-previous-term remains future scope; period remapping after sessions exist is intentionally blocked for MVP."
+      }
     }
   ],
   "coverage": {
@@ -12537,7 +12688,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "TASK-006",
           "TASK-054",
           "VAL-003",
-          "VAL-014"
+          "VAL-014",
+          "TASK-065"
         ]
       },
       {
@@ -12668,7 +12820,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "task_ids": [
           "TASK-003",
           "TASK-009",
-          "VAL-003"
+          "VAL-003",
+          "TASK-065"
         ]
       },
       {
@@ -12699,7 +12852,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "TASK-015",
           "TASK-045",
           "VAL-004",
-          "VAL-011"
+          "VAL-011",
+          "TASK-065"
         ]
       },
       {
@@ -12870,7 +13024,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "TASK-054",
           "TASK-055",
           "VAL-003",
-          "VAL-014"
+          "VAL-014",
+          "TASK-065"
         ]
       },
       {
@@ -12963,7 +13118,8 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "TASK-054",
           "VAL-003",
           "VAL-008",
-          "VAL-014"
+          "VAL-014",
+          "TASK-065"
         ]
       },
       {
@@ -13056,14 +13212,16 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
         "entity": "timetable",
         "task_ids": [
           "TASK-001",
-          "TASK-003"
+          "TASK-003",
+          "TASK-065"
         ]
       },
       {
         "entity": "timetable_period",
         "task_ids": [
           "TASK-001",
-          "TASK-003"
+          "TASK-003",
+          "TASK-065"
         ]
       },
       {
@@ -13415,6 +13573,18 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:var(--p
           "TASK-061",
           "INTEGRATION-010",
           "VAL-018"
+        ]
+      },
+      {
+        "api_id": "API-032",
+        "task_ids": [
+          "TASK-065"
+        ]
+      },
+      {
+        "api_id": "API-033",
+        "task_ids": [
+          "TASK-065"
         ]
       }
     ],

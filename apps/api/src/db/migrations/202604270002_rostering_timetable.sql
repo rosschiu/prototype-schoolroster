@@ -17,6 +17,7 @@ create table if not exists roster_timetables (
   half_day_boundary_time time,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  structure_confirmed_at timestamptz,
   published_at timestamptz,
   archived_at timestamptz,
   unique (school_id, term_id, name),

@@ -125,6 +125,8 @@ Use stable IDs so implementation and validation tasks can map to contracts.
 | API-029 | /roster/leave/:id/impacts | PATCH | impact additions/removals, coverage_required updates, adjustment_reason | updated leave_session_impacts | validation, invalid_state | admin |
 | API-030 | /roster/schedule-projections | GET | term_id, projection_type (`class`/`teacher`/`room`/`equipment`), owner_id | generated schedule projection | validation, not_found | admin; teacher self for own projection |
 | API-031 | /roster/substitutes/recommendations/:job_id | GET | job_id | recommendation job status, progress, result when complete | not_found, failed | admin |
+| API-032 | /roster/timetables/:id/periods | PATCH | periods[] with day_index, period_index, label, start_time, end_time, half_day, sort_order, is_teaching_period | timetable + periods | validation, existing_sessions, not_found | admin |
+| API-033 | /roster/timetables/:id/confirm-structure | POST | timetable_id | timetable + periods with structure_confirmed_at | validation, not_found | admin |
 
 ## Integration Inventory [AIH]
 | Integration | Purpose | Real/mocked | Auth/secrets | Failure behavior | Validation approach |
@@ -214,6 +216,15 @@ The timetable service should provide school-scoped defaults:
 - Optional room/equipment/resource defaults if Steck has existing resource data.
 
 Admins can accept a template, amend it inline, then publish only after validation passes.
+
+Implementation rule:
+- Creating a timetable from a default template creates editable period rows but does not mark the timetable structure as confirmed.
+- Class session entry is locked in the browser until `structure_confirmed_at` is set.
+- `API-032` replaces the draft timetable period set and clears `structure_confirmed_at`.
+- `API-032` is blocked once active class sessions exist for the timetable; remapping existing sessions is a future enhancement.
+- `API-033` validates period labels, HH:MM times, non-overlap within each day, unique day/period keys, at least one teaching period, and at least one AM and PM teaching period.
+- Publish is blocked until `structure_confirmed_at` exists.
+- Non-teaching periods remain in the timetable grid for admin visibility but are not valid class-session period options.
 
 ### Generated Schedule Projections
 `rostering_schedule_sessions` remains the source of truth for recurring roster planning. The system generates these read projections:

@@ -117,6 +117,14 @@ export function getPlannerWarnings(state: SchedulePlannerState): PlannerWarning[
     ];
   }
   const warnings: PlannerWarning[] = [];
+  if (!state.timetable.structureConfirmedAt) {
+    warnings.push({
+      id: 'structure-unconfirmed',
+      tone: 'danger',
+      title: 'Timetable structure not confirmed',
+      detail: 'Review period labels, times, AM/PM grouping, and teaching blocks before adding sessions or publishing.'
+    });
+  }
   if (state.sessions.length === 0) {
     warnings.push({
       id: 'no-sessions',
@@ -134,7 +142,10 @@ export function getPlannerWarnings(state: SchedulePlannerState): PlannerWarning[
       detail: 'Assign a teacher or remove the draft session before publishing.'
     });
   }
-  if (state.periods.filter((period) => period.halfDay === 'am').length === 0 || state.periods.filter((period) => period.halfDay === 'pm').length === 0) {
+  if (
+    state.periods.filter((period) => period.isTeachingPeriod && period.halfDay === 'am').length === 0 ||
+    state.periods.filter((period) => period.isTeachingPeriod && period.halfDay === 'pm').length === 0
+  ) {
     warnings.push({
       id: 'half-day',
       tone: 'danger',

@@ -55,9 +55,10 @@ export function ScheduleGrid({
               const period = periods.find((item) => item.dayIndex === dayIndex && item.periodIndex === periodIndex);
               const periodSessions = period ? sessionsForPeriod(sessions, period) : [];
               return (
-                <div className="grid-cell" key={`${dayIndex}-${periodIndex}`}>
+                <div className={`grid-cell${period && !period.isTeachingPeriod ? ' non-teaching-cell' : ''}`} key={`${dayIndex}-${periodIndex}`}>
                   {period ? <span className="time-chip">{period.startTime}-{period.endTime}</span> : null}
-                  {periodSessions.length === 0 ? <span className="empty-slot">No class</span> : null}
+                  {period && !period.isTeachingPeriod ? <span className="empty-slot">Non-teaching</span> : null}
+                  {periodSessions.length === 0 && period?.isTeachingPeriod !== false ? <span className="empty-slot">No class</span> : null}
                   {periodSessions.map((session) => (
                     <button className="session-card" key={session.id} onClick={() => onEdit(session)} type="button">
                       <strong>{session.subjectId}</strong>

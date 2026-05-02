@@ -33,12 +33,14 @@ Define what users can do, how major journeys work, and what UX/design direction 
 - Preconditions: School, academic year/term, subjects, grade levels, and teachers exist in Steck.
 - Main path:
   1. Admin opens Schedule Planner.
-  2. System offers sensible default timetable templates (e.g., standard 5-day school week, common period blocks, AM/PM grouping) that admin can accept or amend.
-  3. Admin reviews an overview of timetable structure, classes, teachers, rooms, and equipment/resource conflicts.
-  4. Admin creates or imports class sessions (subject + grade + section + room + period + equipment/resource needs).
-  5. Admin assigns a teacher to each session.
-  6. System generates class schedules, teacher rosters, room schedules, and equipment/resource schedules from the same source of truth.
-  7. Admin reviews warnings and makes inline amendments before publishing.
+  2. System offers sensible default timetable templates (e.g., standard 5-day school week, common period blocks, AM/PM grouping).
+  3. Admin selects a default template; the app opens an editable timetable setup step instead of skipping directly to class scheduling.
+  4. Admin amends period labels, start/end times, AM/PM grouping, and teaching/non-teaching blocks, then confirms the timetable structure.
+  5. Admin reviews an overview of timetable structure, classes, teachers, rooms, and equipment/resource conflicts.
+  6. Admin creates or imports class sessions (subject + grade + section + room + period + equipment/resource needs).
+  7. Admin assigns a teacher to each session.
+  8. System generates class schedules, teacher rosters, room schedules, and equipment/resource schedules from the same source of truth.
+  9. Admin reviews warnings and makes inline amendments before publishing.
 - Success state: Teachers can see their personal timetable; admin sees full school timetable, per-class schedules, room schedules, and equipment/resource schedules.
 - Empty/loading/error states: Empty schedule shows guided templates and "start from default" action; validation errors show inline (e.g., double-booked teacher, room/equipment conflict).
 - Permission/security notes: Admin-only; scoped to current school and term.
@@ -192,7 +194,7 @@ Use stable IDs so the board can map requirements to tasks and validation.
 ## Screen And State Inventory [AIH]
 | Screen/state | Purpose | Key content/actions | Empty/loading/error states | Linked journey/FR |
 |---|---|---|---|---|
-| Schedule Planner | Create/edit timetable and assign teachers | Default timetable templates, overview dashboard, timetable grid, session cards, teacher assignment dropdown, room/equipment schedule views, publish readiness warnings | Empty: "No timetable yet — start from a default template"; Error: teacher/room/equipment double-booking warning | Journey 1, FR-001/002/003/016/017 |
+| Schedule Planner | Create/edit timetable and assign teachers | Default timetable templates, editable timetable setup, overview dashboard, timetable grid, session cards, teacher assignment dropdown, room/equipment schedule views, publish readiness warnings | Empty: "No timetable yet — start from a default template"; Locked: session editor stays disabled until timetable structure is confirmed; Error: teacher/room/equipment double-booking warning | Journey 1, FR-001/002/003/016/017 |
 | Teacher Timetable | View personal schedule | Calendar/grid view of sessions | Empty: "No schedule published yet" | Journey 1, FR-003 |
 | Leave Application | Apply for leave | Date picker, full-day/AM/PM duration selector, affected-session preview, coverage-needed toggle, reason/type input, substitute-facing notes, submit | Error: date in past, no roster; Warning: boundary period needs admin review | Journey 2, FR-004/018/019/028 |
 | Leave Management | Review and act on leave | Leave list, detail panel, duration, affected sessions, impacted-session correction controls, substitute recommendations, coverage-needed/no-coverage-needed state | Empty: "No pending leave"; Error: no substitutes available | Journey 3/6, FR-005/006/011/018/023/025/033 |

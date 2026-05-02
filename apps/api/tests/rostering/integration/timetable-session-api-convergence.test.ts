@@ -99,6 +99,13 @@ test('admin can create timetable, create sessions, publish, and read all project
   });
   assert.equal(secondSession.statusCode, 201, secondSession.body);
 
+  const confirmed = await app.inject({
+    method: 'POST',
+    url: `/api/roster/timetables/${timetableBody.timetable.id}/confirm-structure`,
+    headers: { cookie: adminAuth.cookie, [ROSTER_CSRF_HEADER_NAME]: adminAuth.csrfToken }
+  });
+  assert.equal(confirmed.statusCode, 200, confirmed.body);
+
   const published = await app.inject({
     method: 'POST',
     url: `/api/roster/timetables/${timetableBody.timetable.id}/publish`,

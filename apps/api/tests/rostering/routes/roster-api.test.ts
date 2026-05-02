@@ -88,8 +88,51 @@ test('timetable routes create, list, and publish with session and CSRF enforceme
     url: `/api/roster/timetables/${created.timetable.id}/publish`,
     headers: { cookie: auth.cookie, [ROSTER_CSRF_HEADER_NAME]: auth.csrfToken }
   });
-  assert.equal(published.statusCode, 200);
-  assert.equal(published.json().timetable.status, 'published');
+  assert.equal(published.statusCode, 400);
+  assert.match(published.json().message, /Confirm timetable structure/);
+
+  const confirmed = await app.inject({
+    method: 'POST',
+    url: `/api/roster/timetables/${created.timetable.id}/confirm-structure`,
+    headers: { cookie: auth.cookie, [ROSTER_CSRF_HEADER_NAME]: auth.csrfToken }
+  });
+  assert.equal(confirmed.statusCode, 200, confirmed.body);
+  assert.ok(confirmed.json().timetable.structureConfirmedAt);
+
+  const publishedAfterConfirm = await app.inject({
+    method: 'POST',
+    url: `/api/roster/timetables/${created.timetable.id}/publish`,
+    headers: { cookie: auth.cookie, [ROSTER_CSRF_HEADER_NAME]: auth.csrfToken }
+  });
+  assert.equal(publishedAfterConfirm.statusCode, 200);
+  assert.equal(publishedAfterConfirm.json().timetable.status, 'published');
+});
+
+test('timetable routes amend and confirm editable period structure', async () => {
+  const auth = await signIn();
+  const created = await createTimetable(auth);
+  const periods = created.periods.map((period: Record<string, unknown>) =>
+    period.id === created.periods[0].id ? { ...period, label: 'Assembly', isTeachingPeriod: false } : period
+  );
+
+  const updated = await app.inject({
+    method: 'PATCH',
+    url: `/api/roster/timetables/${created.timetable.id}/periods`,
+    headers: { cookie: auth.cookie, [ROSTER_CSRF_HEADER_NAME]: auth.csrfToken },
+    payload: { periods }
+  });
+  assert.equal(updated.statusCode, 200, updated.body);
+  assert.equal(updated.json().periods[0].label, 'Assembly');
+  assert.equal(updated.json().periods[0].isTeachingPeriod, false);
+  assert.equal(updated.json().timetable.structureConfirmedAt, undefined);
+
+  const confirmed = await app.inject({
+    method: 'POST',
+    url: `/api/roster/timetables/${created.timetable.id}/confirm-structure`,
+    headers: { cookie: auth.cookie, [ROSTER_CSRF_HEADER_NAME]: auth.csrfToken }
+  });
+  assert.equal(confirmed.statusCode, 200, confirmed.body);
+  assert.ok(confirmed.json().timetable.structureConfirmedAt);
 });
 
 test('CORS preflight permits browser PATCH and DELETE mutations', async () => {
@@ -206,6 +249,13 @@ test('timetable detail route returns sessions and publish/unpublish updates sess
   assert.equal(detail.json().periods.length, 40);
   assert.equal(detail.json().sessions.length, 1);
   assert.equal(detail.json().sessions[0].status, 'draft');
+
+  const confirmed = await app.inject({
+    method: 'POST',
+    url: `/api/roster/timetables/${createdTimetable.timetable.id}/confirm-structure`,
+    headers: { cookie: auth.cookie, [ROSTER_CSRF_HEADER_NAME]: auth.csrfToken }
+  });
+  assert.equal(confirmed.statusCode, 200, confirmed.body);
 
   const published = await app.inject({
     method: 'POST',

@@ -189,6 +189,7 @@ function rosteringSchemaStatements(schema: string): string[] {
       half_day_boundary_time time,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now(),
+      structure_confirmed_at timestamptz,
       published_at timestamptz,
       archived_at timestamptz,
       unique (school_id, term_id, name),
@@ -199,6 +200,8 @@ function rosteringSchemaStatements(schema: string): string[] {
       alter column am_period_indexes set default '{1,2,3,4}'`,
     `alter table ${tableRef(schema, 'rostering_timetables')}
       alter column pm_period_indexes set default '{5,6,7,8}'`,
+    `alter table ${tableRef(schema, 'rostering_timetables')}
+      add column if not exists structure_confirmed_at timestamptz`,
     `create table if not exists ${tableRef(schema, 'rostering_timetable_periods')} (
       id text primary key,
       timetable_id text not null references ${tableRef(schema, 'rostering_timetables')} (id) on delete cascade,

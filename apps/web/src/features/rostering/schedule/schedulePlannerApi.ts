@@ -11,6 +11,8 @@ import type { SessionDraft } from './types.js';
 
 export type SchedulePlannerApi = {
   createDefaultTimetable: () => Promise<{ timetable: Timetable; periods: TimetablePeriod[]; sessions?: ClassSession[] }>;
+  updatePeriods: (input: { timetable: Timetable; periods: TimetablePeriod[] }) => Promise<{ timetable: Timetable; periods: TimetablePeriod[] }>;
+  confirmTimetableStructure: (input: { timetable: Timetable; periods: TimetablePeriod[] }) => Promise<{ timetable: Timetable; periods: TimetablePeriod[] }>;
   createSession: (input: CreateSessionInput) => Promise<ClassSession>;
   updateSession: (input: UpdateSessionInput) => Promise<ClassSession>;
   publishTimetable: (input: { timetable: Timetable }) => Promise<Timetable>;
@@ -147,6 +149,18 @@ export function createDemoSchedulePlannerApi(): SchedulePlannerApi {
     async createDefaultTimetable() {
       return createDefaultTimetable();
     },
+    async updatePeriods({ timetable, periods }) {
+      return {
+        timetable: { ...timetable, structureConfirmedAt: undefined, updatedAt: timestamp() },
+        periods: periods.map((period, index) => ({ ...period, sortOrder: index + 1 }))
+      };
+    },
+    async confirmTimetableStructure({ timetable, periods }) {
+      return {
+        timetable: { ...timetable, structureConfirmedAt: timestamp(), updatedAt: timestamp() },
+        periods
+      };
+    },
     async createSession(input) {
       return classSessionFromCreateRequest(toCreateClassSessionRequest(input));
     },
@@ -197,6 +211,29 @@ export function createRosterSchedulePlannerApi(): SchedulePlannerApi {
       cachedPeriods = created.periods;
       cachedSessions = [];
       return created;
+    },
+
+    async updatePeriods({ timetable, periods }) {
+      const auth = await signInAdmin();
+      const updated = await request<{ timetable: Timetable; periods: TimetablePeriod[] }>(`/api/roster/timetables/${timetable.id}/periods`, {
+        method: 'PATCH',
+        headers: { 'x-schoolroster-csrf': auth.csrfToken },
+        body: JSON.stringify({ periods })
+      });
+      cachedTimetable = updated.timetable;
+      cachedPeriods = updated.periods;
+      return updated;
+    },
+
+    async confirmTimetableStructure({ timetable }) {
+      const auth = await signInAdmin();
+      const confirmed = await request<{ timetable: Timetable; periods: TimetablePeriod[] }>(`/api/roster/timetables/${timetable.id}/confirm-structure`, {
+        method: 'POST',
+        headers: { 'x-schoolroster-csrf': auth.csrfToken }
+      });
+      cachedTimetable = confirmed.timetable;
+      cachedPeriods = confirmed.periods;
+      return confirmed;
     },
 
     async createSession(input) {

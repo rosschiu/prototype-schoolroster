@@ -15,6 +15,7 @@ function period(overrides: Partial<TimetablePeriod>): TimetablePeriod {
     endTime: '09:10',
     halfDay: 'am',
     sortOrder: 1,
+    isTeachingPeriod: true,
     ...overrides
   };
 }

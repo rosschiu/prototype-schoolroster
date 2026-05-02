@@ -45,6 +45,7 @@ test('admin creates timetable from sensible default template', async () => {
   assert.equal(result.periods.length, 40);
   assert.equal(result.periods.filter((period) => period.halfDay === 'am').length, 20);
   assert.equal(result.periods.filter((period) => period.halfDay === 'pm').length, 20);
+  assert.equal(result.periods.every((period) => period.isTeachingPeriod), true);
 });
 
 test('timetable service prevents duplicate school term names and cross-school mutation', async () => {
@@ -77,11 +78,78 @@ test('publish updates status and writes audit event', async () => {
     request: { schoolId: 'school-steck-demo', termId: 'term-2026-t1', name: 'Main' }
   });
 
+  await assert.rejects(() => service.publish({ session, timetableId: timetable.id }), /Confirm timetable structure/);
+  await service.confirmStructure({ session, timetableId: timetable.id });
   const published = await service.publish({ session, timetableId: timetable.id });
 
   assert.equal(published.status, 'published');
-  assert.equal(repository.auditEvents.length, 1);
-  assert.equal(repository.auditEvents[0]?.action, 'timetable.publish');
+  assert.equal(repository.auditEvents.at(-1)?.action, 'timetable.publish');
+});
+
+test('admin amends and confirms timetable periods before scheduling', async () => {
+  const repository = new InMemoryTimetableRepository();
+  const service = createTimetableService(repository);
+  const session = await signedIn();
+  const { timetable, periods } = await service.createFromDefault({
+    session,
+    request: { schoolId: 'school-steck-demo', termId: 'term-2026-t1', name: 'Main' }
+  });
+
+  const updated = await service.updatePeriods({
+    session,
+    timetableId: timetable.id,
+    periods: periods.map((period) => period.id === periods[0]?.id ? { ...period, label: 'Assembly', isTeachingPeriod: false } : period)
+  });
+  assert.equal(updated.timetable.structureConfirmedAt, undefined);
+  assert.equal(updated.periods[0]?.label, 'Assembly');
+  assert.equal(updated.periods[0]?.isTeachingPeriod, false);
+
+  const confirmed = await service.confirmStructure({ session, timetableId: timetable.id });
+  assert.ok(confirmed.timetable.structureConfirmedAt);
+  assert.equal(repository.auditEvents.at(-2)?.action, 'timetable.periods.updated');
+  assert.equal(repository.auditEvents.at(-1)?.action, 'timetable.structure.confirmed');
+});
+
+test('timetable period update rejects overlaps and existing sessions', async () => {
+  const repository = new InMemoryTimetableRepository();
+  const service = createTimetableService(repository);
+  const session = await signedIn();
+  const { timetable, periods } = await service.createFromDefault({
+    session,
+    request: { schoolId: 'school-steck-demo', termId: 'term-2026-t1', name: 'Main' }
+  });
+
+  await assert.rejects(
+    () => service.updatePeriods({
+      session,
+      timetableId: timetable.id,
+      periods: periods.map((period) => period.id === periods[1]?.id ? { ...period, startTime: '09:00', endTime: '09:30' } : period)
+    }),
+    /overlap/
+  );
+
+  const period = periods[0];
+  assert.ok(period);
+  await service.createClassSession({
+    session,
+    request: {
+      schoolId: 'school-steck-demo',
+      termId: 'term-2026-t1',
+      timetableId: timetable.id,
+      timetablePeriodId: period.id,
+      subjectId: 'subject-math',
+      gradeLevelId: 'p4',
+      section: 'A',
+      roomId: 'room-101',
+      assignedTeacherId: 'teacher-demo',
+      equipmentResourceIds: []
+    }
+  });
+
+  await assert.rejects(
+    () => service.updatePeriods({ session, timetableId: timetable.id, periods }),
+    /after class sessions exist/
+  );
 });
 
 test('class session creation prevents teacher and room double booking', async () => {
@@ -244,6 +312,7 @@ test('PostgreSQL timetable repository persists schedules when DATABASE_URL is av
         equipmentResourceIds: ['projector-1']
       }
     });
+    await service.confirmStructure({ session, timetableId: timetable.id });
     await service.publish({ session, timetableId: timetable.id });
 
     const reloadedRepository = new PostgresTimetableRepository(database, schema);

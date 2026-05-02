@@ -136,7 +136,7 @@ a { color: inherit; }
 .top-nav { display: none; }
 
 .overview-shell { display: grid; grid-template-columns: minmax(220px, .5fr) minmax(560px, 1.5fr); gap: 14px; margin-bottom: 14px; }
-.overview-hero, .overview-metrics, .warning-strip, .grid-shell, .side-panel, .publish-panel, .projection-panel, .grid-empty { background: rgba(255,255,255,.96); border: 1px solid var(--border-default); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+.overview-hero, .overview-metrics, .warning-strip, .grid-shell, .side-panel, .publish-panel, .projection-panel, .grid-empty, .timetable-setup-panel { background: rgba(255,255,255,.96); border: 1px solid var(--border-default); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
 .overview-hero { padding: 28px; }
 .overview-hero h1 { margin: 0; font-size: clamp(1.65rem, 1.2vw + 1.1rem, 2rem); line-height: 1.2; font-weight: 600; letter-spacing: 0; }
 .overview-hero p { display: none; }
@@ -168,6 +168,7 @@ a { color: inherit; }
 .period-label { min-height: 118px; padding: 12px; display: grid; align-content: center; gap: 5px; background: #eef2ff; }
 .period-label span { width: fit-content; padding: 3px 8px; border-radius: 999px; background: white; color: var(--muted); font-size: .8rem; font-weight: 700; }
 .grid-cell { min-height: 118px; padding: 8px; display: grid; align-content: start; gap: 6px; }
+.non-teaching-cell { background: #f8fafc; border-style: dashed; }
 .time-chip, .empty-slot { color: var(--muted); font-size: .8rem; }
 .session-card { display: grid; gap: 2px; width: 100%; text-align: left; padding: 10px; background: linear-gradient(135deg, #fff 0%, #eff6ff 100%); border: 1px solid #bfdbfe; border-radius: 12px; color: var(--ink); }
 .session-card strong { color: #1d4ed8; }
@@ -196,6 +197,15 @@ a { color: inherit; }
 .publish-panel li.warning { color: var(--amber); }
 .publish-panel li.danger { color: var(--danger); }
 
+.timetable-setup-panel { margin-bottom: 14px; padding: 18px; display: grid; gap: 12px; }
+.period-editor-table { display: grid; gap: 8px; max-height: 420px; overflow: auto; padding-right: 2px; }
+.period-editor-row { display: grid; grid-template-columns: 56px minmax(96px, 1fr) 96px 96px 86px 102px; gap: 8px; align-items: end; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.period-editor-row strong { align-self: center; color: #1e3a8a; }
+.period-editor-row label { display: grid; gap: 4px; margin: 0; font-size: .76rem; font-weight: 700; color: var(--muted); }
+.period-editor-row input, .period-editor-row select { width: 100%; min-height: 2.35rem; padding: .45rem .55rem; background: white; color: var(--ink); }
+.period-editor-row .check-row { align-self: center; color: var(--ink); }
+.setup-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
 .projection-panel { margin-top: 14px; padding: 18px; }
 .projection-controls { display: flex; gap: 8px; }
 .projection-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
@@ -205,7 +215,7 @@ a { color: inherit; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 @media (max-width: 1120px) { .app-shell { grid-template-columns: 1fr; } .shell-sidebar { position: static; } .shell-sidebar-surface { min-height: auto; } .shell-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); } .shell-nav-link { justify-content: center; } .shell-nav-link span { display: none; } .overview-shell, .planner-layout { grid-template-columns: 1fr; } .side-panel { position: static; } .warning-strip { grid-template-columns: 1fr; } .publish-panel { grid-template-columns: 1fr; } }
-@media (max-width: 720px) { .app-shell { padding: 10px; } .shell-header { position: static; align-items: flex-start; flex-direction: column; padding: 12px; } .shell-header-actions { width: 100%; justify-content: space-between; } .shell-nav { grid-template-columns: 1fr 1fr; } .overview-metrics { grid-template-columns: repeat(2, 1fr); } .projection-controls, .form-grid-two { grid-template-columns: 1fr; flex-direction: column; } }
+@media (max-width: 720px) { .app-shell { padding: 10px; } .shell-header { position: static; align-items: flex-start; flex-direction: column; padding: 12px; } .shell-header-actions { width: 100%; justify-content: space-between; } .shell-nav { grid-template-columns: 1fr 1fr; } .overview-metrics { grid-template-columns: repeat(2, 1fr); } .projection-controls, .form-grid-two { grid-template-columns: 1fr; flex-direction: column; } .period-editor-row { grid-template-columns: 1fr 1fr; } .setup-actions { align-items: stretch; flex-direction: column; } }
 
 .leave-workspace { margin-top: 14px; display: grid; gap: 14px; }
 .leave-grid { display: grid; grid-template-columns: minmax(320px, .82fr) minmax(420px, 1.18fr); gap: 14px; align-items: start; }

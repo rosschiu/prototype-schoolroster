@@ -307,3 +307,24 @@ Record durable decisions so humans and agents do not re-litigate settled choices
   - Browser schedule and leave flows use backend routes and are expected to persist through PostgreSQL in validation.
 - Follow-up actions: `VAL-018` should use a real `DATABASE_URL` and record schema/restart evidence before unblocking leave validations.
 - Revisit trigger: Steck merge supplies a different runtime configuration pattern or test harness that replaces the local fallback.
+
+### DEC-016: Timetable defaults require explicit editable structure confirmation
+- Date: 2026-05-02
+- Status: Accepted
+- Decision area: Product / UX / Data
+- Related docs: `docs/01-product-and-ux.md`, `docs/02-system-design.md`, `project/index.html`
+- Context: Human clarified that clicking "Start from 5-day default" should not skip the timetable setup step. The default should seed a sensible structure, then let non-technical school admins review and amend it before class scheduling starts.
+- Options considered:
+  - Option A: Keep current behavior where the default immediately unlocks class session entry.
+  - Option B: Seed default periods, show an editable setup panel, require confirmation before sessions/publish.
+  - Option C: Build full bulk timetable import/editor first.
+- Final decision: Use Option B.
+- Why: It fixes the immediate UX gap without expanding scope to a full bulk timetable editor. It also protects half-day leave calculations because AM/PM grouping and teaching/non-teaching blocks become explicit admin-confirmed data.
+- Consequences:
+  - Timetables store `structure_confirmed_at`.
+  - Draft periods can be replaced through a dedicated API before sessions exist.
+  - Updating periods clears structure confirmation.
+  - Session entry and publish are blocked until structure confirmation.
+  - Non-teaching periods remain visible but cannot receive class sessions.
+- Follow-up actions: Re-run live browser/PostgreSQL validation for the corrected setup flow; consider bulk import/copy-previous-term as a future planning task.
+- Revisit trigger: Pilot admins need session remapping after sessions already exist, or need previous-term copy/import before MVP acceptance.

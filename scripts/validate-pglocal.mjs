@@ -106,6 +106,10 @@ async function smokeBeforeRestart() {
     })
   });
   const period = created.periods[0];
+  await req(`/api/roster/timetables/${created.timetable.id}/confirm-structure`, {
+    method: 'POST',
+    headers: { 'x-schoolroster-csrf': csrf }
+  });
   const session = await req('/api/roster/sessions', {
     method: 'POST',
     headers: { 'x-schoolroster-csrf': csrf },

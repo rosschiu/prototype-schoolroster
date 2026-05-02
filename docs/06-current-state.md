@@ -13,9 +13,9 @@
 Provide the fastest possible operational snapshot for humans and agents.
 
 ## Current Snapshot [AIH]
-- Current milestone or phase: Phase 3 (Build) — WAVE-008 Steck integration and merge planning
+- Current milestone or phase: Phase 3 (Build) — corrective WAVE-002 timetable setup flow complete; WAVE-008 Steck integration and merge planning remains next
 - Delivery mode: MVP
-- Current top priority: Confirm/open WAVE-008 Steck integration and merge tasks (`TASK-039` through `TASK-044`) or decide whether to run launch/security validations first.
+- Current top priority: Confirm/open WAVE-008 Steck integration and merge tasks (`TASK-039` through `TASK-044`) or decide whether remaining launch/security validations should run first.
 - Current top risk: Local development now depends on the existing Docker Postgres 18 container `pglocal`; agents should verify it is running before browser/API validation
 - Current blocker if any: WAVE-008 tasks remain draft and need human confirmation before implementation that touches Steck merge/integration boundaries.
 
@@ -67,6 +67,7 @@ Coding may start only when:
 - Capability: `INTEGRATION-010` runtime convergence is complete: default services use PostgreSQL repositories when configured, frontend schedule/leave clients call backend routes, publish/unpublish updates session exposure state, and restart smoke evidence proves a timetable/session/leave/impact survived API restart.
 - Capability: `VAL-018` PostgreSQL persistence and Steck schema compatibility validation is complete against existing Docker Postgres 18 `pglocal` (`postgres://nexus:***@127.0.0.1:5432/nexus2`, schema `schoolroster_val18`), with evidence in `output/val-018-pglocal-evidence.json`.
 - Capability: `VAL-004` and `VAL-011` persistence-backed leave validations are complete against the Postgres 18 `pglocal` browser/API runtime, with evidence in `output/val-004-011-browser-evidence.json` and screenshots in `output/playwright/`.
+- Capability: Corrective schedule setup flow is implemented: starting from the 5-day default now opens an editable timetable setup panel; admins can amend labels, times, AM/PM grouping, and teaching/non-teaching blocks; class session entry and publish are blocked until structure confirmation; changes persist through PostgreSQL-backed API routes and are audited.
 - Capability: `TASK-019`, `TASK-022`, `TASK-023`, and `TASK-024` are complete: substitute rule config, teacher competency, and class familiarity tables are in the PostgreSQL migration metadata; default rule configs are seeded; workload balance, subject competency, and class familiarity scorer modules are implemented with deterministic tests matching `docs/02-system-design.md`.
 - Capability: `TASK-025` weighted composite scoring and ranking is complete: enabled weights normalize at runtime, recency and preference/policy scoring are implemented, infeasible and hard-excluded candidates are filtered, explainability breakdowns/raw inputs are emitted, and deterministic tie-break/performance tests pass.
 - Capability: `TASK-026` substitute recommendation API is complete: `/api/roster/substitutes/recommend` returns ranked explainable candidates from the composite scorer, `/api/roster/substitutes/recommendations/:job_id` exposes polling, and route tests cover sync result, async-style polling, admin-only access, validation errors, and pglocal PostgreSQL execution.
@@ -108,6 +109,9 @@ Coding may start only when:
 - Item: WAVE-007 audit, reports, and export
   - Status: WAVE-007 is done; `TASK-033`, `TASK-034`, `TASK-035`, `TASK-036`, `TASK-037`, `TASK-038`, `TASK-051`, `INTEGRATION-008`, `VAL-006`, and `VAL-013` are done.
   - Risk or blocker: None for WAVE-007.
+- Item: Corrective WAVE-002 timetable setup flow
+  - Status: `TASK-065` is done; editable timetable structure confirmation is implemented and validated locally plus against Postgres 18 `pglocal`.
+  - Risk or blocker: Bulk timetable import/copy-previous-term and remapping periods after sessions exist remain future scope.
 
 ## What Is Next [AIH]
 1. Confirm/open WAVE-008 Steck integration and merge tasks, starting with `TASK-039` shared contracts and `TASK-043` merge plan documentation.
@@ -121,6 +125,7 @@ Coding may start only when:
 - Gap: Recommendation, leave, substitute assignment, audit, report, coverage operations, and CSV export flows now have API/component/pglocal coverage plus selected browser evidence; remaining gaps are launch/security/accessibility validation and Steck merge adapter work.
 - Gap: Algorithm details may receive further human feedback during browser/testing review; current spec is accepted for planning.
 - Gap: Human may still review/refine algorithm details during browser/testing feedback, but source docs are accepted for planning.
+- Gap: Bulk timetable import/copy-previous-term is not implemented; current flow supports start-from-default, edit periods, confirm structure, then create sessions.
 
 ## Recent Important Changes [AIH]
 - Date: 2026-04-26
@@ -147,6 +152,9 @@ Coding may start only when:
 - Date: 2026-04-27
 - Change: Human approved source docs `00`-`04` enough for board cleanup, with requested refinements to schedule defaults/projections and recommendation run-status SLA.
 - Why it mattered: Source document gate is no longer the primary blocker; next blocker is board readiness and approval.
+- Date: 2026-05-02
+- Change: Implemented the corrective timetable setup flow after human approval.
+- Why it mattered: Clicking "Start from 5-day default" now opens an editable timetable setup step; admins must confirm period labels, times, AM/PM grouping, and teaching/non-teaching blocks before class session entry or publish. Validation passed with `npm run typecheck`, `npm test --workspace @prototype-schoolroster/api`, `npm test --workspace @prototype-schoolroster/web`, `npm run build`, `npm run lint`, `npm run test:api:pglocal`, and `npm run validate:pglocal`.
 - Date: 2026-04-27
 - Change: Updated board for FR-001/FR-003 refinements and recommendation run-status SLA; reparented validation items under waves.
 - Why it mattered: Board hierarchy now satisfies EPIC > wave > validation structure, and board coverage includes default timetable templates, generated schedule projections, and recommendation status/fallback UX.

@@ -58,7 +58,8 @@ export function createDefaultTimetable(): { timetable: Timetable; periods: Timet
       startTime,
       endTime,
       halfDay,
-      sortOrder: dayOffset * seeds.length + index + 1
+      sortOrder: dayOffset * seeds.length + index + 1,
+      isTeachingPeriod: true
     }))
   ).flat();
   return { timetable, periods };

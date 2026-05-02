@@ -19,6 +19,7 @@ import { PublishPanel } from '../../features/rostering/schedule/PublishPanel.js'
 import { ScheduleGrid } from '../../features/rostering/schedule/ScheduleGrid.js';
 import { ScheduleOverview } from '../../features/rostering/schedule/ScheduleOverview.js';
 import { SessionForm } from '../../features/rostering/schedule/SessionForm.js';
+import { TimetableSetupPanel } from '../../features/rostering/schedule/TimetableSetupPanel.js';
 import { createInitialPlannerState } from '../../features/rostering/schedule/mockRosterData.js';
 import { createRosterSchedulePlannerApi, type SchedulePlannerApi } from '../../features/rostering/schedule/schedulePlannerApi.js';
 import type { SchedulePlannerState, SessionDraft } from '../../features/rostering/schedule/types.js';
@@ -116,6 +117,32 @@ export function SchedulePlannerPage({
     });
   }
 
+  function savePeriods(periods: typeof state.periods) {
+    void runPlannerAction('Saving timetable structure...', async () => {
+      if (!state.timetable) throw new Error('Create a timetable before editing periods.');
+      const updated = await api.updatePeriods({ timetable: state.timetable, periods });
+      setState((current) => ({
+        ...current,
+        timetable: updated.timetable,
+        periods: updated.periods
+      }));
+      setToast('Timetable structure saved.');
+    });
+  }
+
+  function confirmStructure() {
+    void runPlannerAction('Confirming timetable structure...', async () => {
+      if (!state.timetable) throw new Error('Create a timetable before confirming structure.');
+      const updated = await api.confirmTimetableStructure({ timetable: state.timetable, periods: state.periods });
+      setState((current) => ({
+        ...current,
+        timetable: updated.timetable,
+        periods: updated.periods
+      }));
+      setToast('Timetable structure confirmed.');
+    });
+  }
+
   function saveSession(draft: SessionDraft, editingSessionId?: string) {
     void runPlannerAction(editingSessionId ? 'Saving session amendment...' : 'Adding session...', async () => {
       if (!state.timetable) throw new Error('Start from a default timetable before adding sessions.');
@@ -180,6 +207,12 @@ export function SchedulePlannerPage({
 
       <section className="planner-layout" id="planner">
         <div>
+          <TimetableSetupPanel
+            timetable={state.timetable}
+            periods={state.periods}
+            onSave={savePeriods}
+            onConfirm={confirmStructure}
+          />
           <ScheduleGrid periods={state.periods} sessions={groupedSessions} teachers={state.teachers} rooms={state.rooms} onEdit={setEditingSession} />
           <PublishPanel
             state={state}

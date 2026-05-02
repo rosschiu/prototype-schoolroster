@@ -1,13 +1,13 @@
 {
-  "timetableId": "1e4e3736-d366-4416-a7d3-2f403639f6dc",
-  "sessionId": "9a37ac19-35a8-4907-adf9-e3e6dcb94485",
-  "leaveRequestId": "b76fa92c-b6af-47ce-b354-596cee664d81",
-  "impactCountBeforeRestart": 3,
+  "timetableId": "5714c36c-bd69-43b4-ba26-bc840f95354b",
+  "sessionId": "96348bc7-c835-4c69-a721-b23a1ca887ba",
+  "leaveRequestId": "cf5cd964-6844-4ac1-a28a-8c88a4277065",
+  "impactCountBeforeRestart": 4,
   "database": "pglocal postgres:18-alpine on 127.0.0.1:5432/nexus2",
   "schema": "schoolroster_val18",
   "timetableStatusAfterRestart": "published",
   "sessionCountAfterRestart": 1,
   "matchingSessionStatusAfterRestart": "published",
   "leaveFoundAfterRestart": true,
-  "impactCountAfterRestart": 3
+  "impactCountAfterRestart": 4
 }

@@ -50,6 +50,12 @@ test('admin queries roster audit events with object filters and teacher is denie
   });
   assert.equal(created.statusCode, 201, created.body);
   const timetableId = created.json().timetable.id as string;
+  const confirmed = await app.inject({
+    method: 'POST',
+    url: `/api/roster/timetables/${timetableId}/confirm-structure`,
+    headers: { cookie: admin.cookie, [ROSTER_CSRF_HEADER_NAME]: admin.csrfToken }
+  });
+  assert.equal(confirmed.statusCode, 200, confirmed.body);
   const published = await app.inject({
     method: 'POST',
     url: `/api/roster/timetables/${timetableId}/publish`,
@@ -71,9 +77,10 @@ test('admin queries roster audit events with object filters and teacher is denie
     headers: { cookie: admin.cookie }
   });
   assert.equal(filtered.statusCode, 200, filtered.body);
-  assert.equal(filtered.json().auditEvents.length, 1);
-  assert.equal(filtered.json().auditEvents[0].eventType, 'timetable.publish');
-  assert.equal(filtered.json().auditEvents[0].metadata.after.id, timetableId);
+  assert.equal(filtered.json().auditEvents.length, 2);
+  const publishEvent = filtered.json().auditEvents.find((event: { eventType: string }) => event.eventType === 'timetable.publish');
+  assert.ok(publishEvent);
+  assert.equal(publishEvent.metadata.after.id, timetableId);
 
   const teacher = await signIn('teacher');
   const denied = await app.inject({
@@ -116,6 +123,13 @@ test('PostgreSQL-backed audit route queries Steck-compatible audit_events when D
     });
     assert.equal(created.statusCode, 201, created.body);
     const timetableId = created.json().timetable.id as string;
+
+    const confirmed = await pgApp.inject({
+      method: 'POST',
+      url: `/api/roster/timetables/${timetableId}/confirm-structure`,
+      headers: { cookie: auth.cookie, [ROSTER_CSRF_HEADER_NAME]: auth.csrfToken }
+    });
+    assert.equal(confirmed.statusCode, 200, confirmed.body);
 
     const published = await pgApp.inject({
       method: 'POST',

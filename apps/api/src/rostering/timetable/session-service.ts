@@ -105,6 +105,14 @@ export function createSessionService(repository: TimetableRepository) {
         createdAt: timestamp,
         updatedAt: timestamp
       };
+      const periods = await repository.listPeriods(candidate.timetableId);
+      const selectedPeriod = periods.find((period) => period.id === candidate.timetablePeriodId);
+      if (!selectedPeriod) {
+        throw new TimetableValidationError('Timetable period was not found.');
+      }
+      if (!selectedPeriod.isTeachingPeriod) {
+        throw new TimetableValidationError('Class sessions can only be assigned to teaching periods.');
+      }
       const conflicts = await detectSessionConflicts({ repository, candidate });
       if (conflicts[0]) {
         throw conflictError(conflicts[0]);
@@ -141,6 +149,16 @@ export function createSessionService(repository: TimetableRepository) {
         equipmentResourceIds: input.patch.equipmentResourceIds ?? existing.equipmentResourceIds,
         updatedAt: timestamp
       };
+      if (input.patch.timetablePeriodId) {
+        const periods = await repository.listPeriods(candidate.timetableId);
+        const selectedPeriod = periods.find((period) => period.id === candidate.timetablePeriodId);
+        if (!selectedPeriod) {
+          throw new TimetableValidationError('Timetable period was not found.');
+        }
+        if (!selectedPeriod.isTeachingPeriod) {
+          throw new TimetableValidationError('Class sessions can only be assigned to teaching periods.');
+        }
+      }
       const conflicts = await detectSessionConflicts({ repository, candidate, ignoreSessionId: existing.id });
       if (conflicts[0]) {
         throw conflictError(conflicts[0]);

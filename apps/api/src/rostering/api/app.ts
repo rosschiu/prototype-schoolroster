@@ -13,6 +13,7 @@ import type {
   ReassignSubstituteAssignmentRequest,
   UpdateSubstituteAssignmentStatusRequest,
   UpdateClassSessionRequest,
+  UpdateTimetablePeriodsRequest,
   ReportExportType
 } from '../../../../../packages/contracts/src/rostering.js';
 import {
@@ -218,6 +219,26 @@ function normalizeCreateSessionRequest(body: unknown): CreateClassSessionRequest
       : [],
     status: value.status === 'published' || value.status === 'archived' || value.status === 'cancelled' ? value.status : 'draft',
     notes: hasText(value.notes) ? value.notes : undefined
+  };
+}
+
+function normalizeUpdateTimetablePeriodsRequest(body: unknown): UpdateTimetablePeriodsRequest {
+  const value = (body ?? {}) as Record<string, unknown>;
+  const periods = Array.isArray(value.periods)
+    ? value.periods.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
+  return {
+    periods: periods.map((period) => ({
+      id: hasText(period.id) ? period.id : undefined,
+      dayIndex: Number(period.dayIndex),
+      periodIndex: Number(period.periodIndex),
+      label: requireText(period.label, 'label'),
+      startTime: requireText(period.startTime, 'startTime'),
+      endTime: requireText(period.endTime, 'endTime'),
+      halfDay: requireText(period.halfDay, 'halfDay') as UpdateTimetablePeriodsRequest['periods'][number]['halfDay'],
+      sortOrder: period.sortOrder === undefined ? undefined : Number(period.sortOrder),
+      isTeachingPeriod: typeof period.isTeachingPeriod === 'boolean' ? period.isTeachingPeriod : undefined
+    }))
   };
 }
 
@@ -578,6 +599,30 @@ export function buildRosterApiApp(services: RosterApiServices): FastifyInstance 
       const sessions = (await services.timetableRepository.listClassSessions(timetable.schoolId, timetable.termId))
         .filter((item) => item.timetableId === timetable.id);
       return { timetable, periods, sessions };
+    } catch (error) {
+      return handleRosterError(error, reply);
+    }
+  });
+
+  app.patch('/api/roster/timetables/:id/periods', async (request, reply) => {
+    try {
+      const session = await getAuthenticatedSession({ request, reply, authService: services.authService });
+      if (!session) return authError(reply);
+      return await timetableService.updatePeriods({
+        session,
+        timetableId: (request.params as { id: string }).id,
+        periods: normalizeUpdateTimetablePeriodsRequest(request.body).periods
+      });
+    } catch (error) {
+      return handleRosterError(error, reply);
+    }
+  });
+
+  app.post('/api/roster/timetables/:id/confirm-structure', async (request, reply) => {
+    try {
+      const session = await getAuthenticatedSession({ request, reply, authService: services.authService });
+      if (!session) return authError(reply);
+      return await timetableService.confirmStructure({ session, timetableId: (request.params as { id: string }).id });
     } catch (error) {
       return handleRosterError(error, reply);
     }

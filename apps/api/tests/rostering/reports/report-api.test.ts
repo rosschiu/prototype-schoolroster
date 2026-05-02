@@ -71,6 +71,13 @@ async function seedReportFixture() {
   });
   assert.equal(session.statusCode, 201, session.body);
 
+  const confirmed = await app.inject({
+    method: 'POST',
+    url: `/api/roster/timetables/${timetableBody.timetable.id}/confirm-structure`,
+    headers: { cookie: admin.cookie, [ROSTER_CSRF_HEADER_NAME]: admin.csrfToken }
+  });
+  assert.equal(confirmed.statusCode, 200, confirmed.body);
+
   const published = await app.inject({
     method: 'POST',
     url: `/api/roster/timetables/${timetableBody.timetable.id}/publish`,

@@ -14,6 +14,7 @@ export type Timetable = {
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
+  structureConfirmedAt?: string;
 };
 
 export type TimetablePeriod = {
@@ -27,6 +28,23 @@ export type TimetablePeriod = {
   endTime: string;
   halfDay: TimetablePeriodHalfDay;
   sortOrder: number;
+  isTeachingPeriod: boolean;
+};
+
+export type UpdateTimetablePeriodInput = {
+  id?: string;
+  dayIndex: number;
+  periodIndex: number;
+  label: string;
+  startTime: string;
+  endTime: string;
+  halfDay: TimetablePeriodHalfDay;
+  sortOrder?: number;
+  isTeachingPeriod?: boolean;
+};
+
+export type UpdateTimetablePeriodsRequest = {
+  periods: UpdateTimetablePeriodInput[];
 };
 
 export type ClassSession = {

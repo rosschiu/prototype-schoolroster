@@ -101,6 +101,13 @@ function coverageQueueItem(input: Partial<UnfilledCoverageQueueItem>): UnfilledC
   };
 }
 
+async function confirmTimetableStructure() {
+  const confirmButton = await screen.findByRole('button', { name: /confirm structure/i });
+  await waitFor(() => expect(confirmButton).not.toBeDisabled());
+  fireEvent.click(confirmButton);
+  await waitFor(() => expect(screen.getByLabelText('Timetable setup')).toHaveTextContent('Confirmed'));
+}
+
 describe('SchedulePlannerPage', () => {
   it('starts from default template and shows admin overview metrics', async () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
@@ -114,10 +121,27 @@ describe('SchedulePlannerPage', () => {
     expect(screen.getByLabelText('Timetable grid')).toBeInTheDocument();
   });
 
+  it('requires timetable setup confirmation and excludes non-teaching periods from session entry', async () => {
+    render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
+    fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
+    await screen.findByText('Default timetable created.');
+
+    expect(screen.getByLabelText('Session form')).toHaveTextContent('Confirm the timetable structure before adding class sessions.');
+    fireEvent.click((await screen.findAllByLabelText('P1 teaching period'))[0]);
+    fireEvent.click(screen.getByRole('button', { name: /save timetable structure/i }));
+    expect(await screen.findByText('Timetable structure saved.')).toBeInTheDocument();
+    await confirmTimetableStructure();
+
+    const periodSelect = screen.getByLabelText('Period');
+    expect(within(periodSelect).queryByText(/Day 1 P1/)).not.toBeInTheDocument();
+    expect(within(periodSelect).getByText(/Day 1 P2/)).toBeInTheDocument();
+  });
+
   it('creates a session, shows it in the grid, and enables publishing', async () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Math' } });
@@ -140,6 +164,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Teacher'), { target: { value: 'teacher-demo' } });
@@ -160,6 +185,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Teacher'), { target: { value: 'teacher-demo' } });
     fireEvent.change(screen.getByLabelText('Room'), { target: { value: 'room-101' } });
@@ -197,6 +223,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={api} leaveApi={null} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Science' } });
@@ -263,6 +290,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Math' } });
@@ -298,6 +326,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Math' } });
@@ -388,6 +417,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} substituteRecommendationApi={recommendationApi} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Math' } });
@@ -451,6 +481,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-5' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Science' } });
@@ -491,6 +522,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} substituteAssignmentsApi={substituteAssignmentsApi} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Math' } });
@@ -551,6 +583,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} coverageApi={coverageApi} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Math' } });
@@ -636,6 +669,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={null} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
 
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Math' } });
@@ -711,6 +745,7 @@ describe('SchedulePlannerPage', () => {
     render(<SchedulePlannerPage api={createDemoSchedulePlannerApi()} leaveApi={leaveApi} />);
     fireEvent.click(screen.getByRole('button', { name: /start from 5-day default/i }));
     await screen.findByText('Default timetable created.');
+    await confirmTimetableStructure();
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'period-1-1' } });
     fireEvent.change(screen.getByLabelText('Teacher'), { target: { value: 'teacher-demo' } });
     fireEvent.change(screen.getByLabelText('Room'), { target: { value: 'room-101' } });
